@@ -6,6 +6,8 @@ import { MenuPage } from "../features/menu/MenuPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 import { PeoplePage } from "../features/people/PeoplePage";
 import { PersonMenuPage, PersonSettingsPage } from "../features/people/PersonRoutes";
+import { DailyReportPage } from "../features/reports/DailyReportPage";
+import { PeriodReportPage } from "../features/reports/PeriodReportPage";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -28,8 +30,8 @@ export const router = createBrowserRouter([
           {
             element: <RequireRole roles={["accountant"]} />,
             children: [
-              { path: "/reports/daily", element: <div className="p-6">Отчёт за день (F5)</div> },
-              { path: "/reports/period", element: <div className="p-6">Отчёт за период (F5)</div> },
+              { path: "/reports/daily", element: <DailyReportPage /> },
+              { path: "/reports/period", element: <PeriodReportPage /> },
             ],
           },
           {
