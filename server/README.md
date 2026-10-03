@@ -40,14 +40,47 @@ uv run pytest -v
 
 `tests/conftest.py` использует `TEST_DATABASE_URL` (по умолчанию `mda_test`).
 
-## Seed (первичный оператор, типы питания, настройки)
+## Первый оператор (главный администратор)
+
+Отдельный безопасный скрипт: создаёт оператора, а существующему меняет пароль только
+с явным флагом `--reset-password` (идемпотентно).
+
+```bash
+cd server
+
+# интерактивно (пароль запросится без эха)
+uv run python -m app.create_operator --login root --full-name "Главный оператор"
+
+# или сразу с паролем
+uv run python -m app.create_operator --login root --full-name "Главный оператор" --password 'S3cret!'
+
+# сменить пароль/ФИО существующему оператору
+uv run python -m app.create_operator --login root --reset-password
+```
+
+Внутри работающего контейнера:
+
+```bash
+cd server
+docker compose exec api python -m app.create_operator --login root --full-name "Главный оператор"
+```
+
+> При запуске из Git Bash пути с ведущим `/` искажаются (MSYS) — команда выше этого избегает
+> (`python` берётся из venv, добавленного в `PATH` образа).
+
+Коды выхода: `0` — успех; `2` — некорректные данные; `3` — оператор уже есть (нужен `--reset-password`);
+`4` — логин занят пользователем с другой ролью.
+
+## Seed (базовые данные: типы питания и настройки)
 
 ```bash
 cd server
 uv run python -m app.seed
 ```
 
-Логин/пароль оператора берутся из `SEED_OPERATOR_LOGIN` / `SEED_OPERATOR_PASSWORD`.
+Идемпотентно создаёт строку настроек, типы питания («Мясо», «Пост», «Рыба») и — если
+оператора ещё нет — оператора из `SEED_OPERATOR_LOGIN` / `SEED_OPERATOR_PASSWORD`.
+Для выбора собственных учётных данных оператора используйте `app.create_operator` выше.
 
 ## Переменные окружения
 
