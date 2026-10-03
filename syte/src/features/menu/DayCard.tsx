@@ -41,7 +41,7 @@ export function DayCard({
       <span className="text-[15px] font-semibold leading-tight">{formatDayShort(day.date)}</span>
 
       {type && (
-        <MealTypeIcon icon={type.icon} className="absolute right-2 top-2 h-4 w-4 text-muted" />
+        <MealTypeIcon icon={type.icon} title={type.name} className="absolute right-2 top-2 h-5 w-5 text-muted" />
       )}
 
       {status === "absent" ? (
