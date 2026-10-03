@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { DefaultsForm } from "../defaults/DefaultsForm";
 import { ThemeSection } from "../theme/ThemeSection";
 import type { Target } from "../../lib/target";
@@ -5,9 +6,27 @@ import type { Target } from "../../lib/target";
 export function SettingsPage({ target }: { target: Target }) {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4">
-      <h1 className="text-xl font-semibold">
-        {target.mode === "self" ? "Настройки" : "Настройки питающегося"}
-      </h1>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">
+          {target.mode === "self" ? "Настройки" : "Настройки питающегося"}
+        </h1>
+        {target.mode === "admin" && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to="/people"
+              className="min-h-11 rounded-xl border border-border px-3 text-sm leading-11"
+            >
+              ← К списку
+            </Link>
+            <Link
+              to={`/people/${target.userId}`}
+              className="min-h-11 rounded-xl border border-border px-3 text-sm leading-11"
+            >
+              Меню
+            </Link>
+          </div>
+        )}
+      </header>
       <DefaultsForm target={target} />
       <ThemeSection />
     </div>

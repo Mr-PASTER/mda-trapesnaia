@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useMealTypes } from "../../api/catalog";
 import { todayIso, addDays } from "../../lib/dates";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -23,9 +23,17 @@ export function MenuPage({ target }: { target: Target }) {
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">{target.mode === "self" ? "Моё меню" : "Меню питающегося"}</h1>
         {target.mode === "admin" && (
-          <button onClick={() => navigate("/people")} className="min-h-11 rounded-xl border border-border px-3 text-sm">
-            ← К списку
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={() => navigate("/people")} className="min-h-11 rounded-xl border border-border px-3 text-sm">
+              ← К списку
+            </button>
+            <Link
+              to={`/people/${target.userId}/settings`}
+              className="min-h-11 rounded-xl border border-border px-3 text-sm leading-11"
+            >
+              Настройки
+            </Link>
+          </div>
         )}
       </header>
 

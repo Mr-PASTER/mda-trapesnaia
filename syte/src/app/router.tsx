@@ -4,6 +4,8 @@ import { AppLayout } from "./AppLayout";
 import { LoginPage } from "../features/auth/LoginPage";
 import { MenuPage } from "../features/menu/MenuPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
+import { PeoplePage } from "../features/people/PeoplePage";
+import { PersonMenuPage, PersonSettingsPage } from "../features/people/PersonRoutes";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -18,8 +20,9 @@ export const router = createBrowserRouter([
           {
             element: <RequireRole roles={["admin"]} />,
             children: [
-              { path: "/people", element: <div className="p-6">Питающиеся (F4)</div> },
-              { path: "/people/:userId", element: <div className="p-6">Карточка питающегося (F4)</div> },
+              { path: "/people", element: <PeoplePage /> },
+              { path: "/people/:userId", element: <PersonMenuPage /> },
+              { path: "/people/:userId/settings", element: <PersonSettingsPage /> },
             ],
           },
           {
