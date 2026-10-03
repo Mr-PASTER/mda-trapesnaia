@@ -674,6 +674,8 @@ import { setUnauthorizedHandler } from "../api/client";
 export function AppProviders({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setUnauthorizedHandler(() => {
+      // Не зацикливаемся: на странице входа 401 — это норма.
+      if (window.location.pathname === "/login") return;
       window.location.assign("/login?reason=expired");
     });
   }, []);
@@ -1057,7 +1059,10 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
-  useCurrentUser(); // прогреваем (не мешает вводу)
+
+  // ВНИМАНИЕ (исправлено при выполнении): НЕ вызывать здесь useCurrentUser().
+  // На /login запрос /auth/me всегда даёт 401, а обработчик 401 уводит на
+  // /login?reason=expired — это зацикливало перезагрузку страницы.
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
