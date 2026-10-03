@@ -84,7 +84,7 @@ export function DefaultsForm({ target }: { target: Target }) {
                 type="button"
                 onClick={() => setMeals((m) => ({ ...m, [kind]: false }))}
                 className={`${segment} ${
-                  !meals[kind] ? "bg-ink text-paper" : "border border-border text-ink hover:bg-sunken"
+                  !meals[kind] ? "bg-solid text-on-solid" : "border border-border text-ink hover:bg-sunken"
                 }`}
               >
                 Не идёт
