@@ -187,9 +187,13 @@ export const useLogs = (params: { from?: string; to?: string; userId?: string })
   useQuery({
     queryKey: ["op", "logs", params.from ?? "", params.to ?? "", params.userId ?? ""],
     queryFn: () => {
+      // Границы — начало и конец дня: иначе `to=<дата>` отсекает записи текущего дня
+      // (бэкенд разбирает дату как полночь).
+      const start = params.from ? (params.from.includes("T") ? params.from : `${params.from}T00:00:00`) : undefined;
+      const end = params.to ? (params.to.includes("T") ? params.to : `${params.to}T23:59:59`) : undefined;
       const q = new URLSearchParams();
-      if (params.from) q.set("from", params.from);
-      if (params.to) q.set("to", params.to);
+      if (start) q.set("from", start);
+      if (end) q.set("to", end);
       if (params.userId) q.set("user_id", params.userId);
       const suffix = q.toString() ? `?${q}` : "";
       return apiFetch<AuditLog[]>(`/operator/logs${suffix}`);

@@ -11,6 +11,10 @@ import { PeriodReportPage } from "../features/reports/PeriodReportPage";
 import { HallsPage } from "../features/operator/HallsPage";
 import { MealTypesPage } from "../features/operator/MealTypesPage";
 import { UsersPage } from "../features/operator/UsersPage";
+import { RulesPage } from "../features/operator/RulesPage";
+import { LogsPage } from "../features/operator/LogsPage";
+import { CalendarPage } from "../features/operator/CalendarPage";
+import { SettingsPage as OperatorSettingsPage } from "../features/operator/SettingsPage";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -43,10 +47,10 @@ export const router = createBrowserRouter([
               { path: "/operator/users", element: <UsersPage /> },
               { path: "/operator/halls", element: <HallsPage /> },
               { path: "/operator/meal-types", element: <MealTypesPage /> },
-              { path: "/operator/rules", element: <div className="p-6">Правила (F6)</div> },
-              { path: "/operator/settings", element: <div className="p-6">Настройки (F6)</div> },
-              { path: "/operator/logs", element: <div className="p-6">Логи (F6)</div> },
-              { path: "/operator/calendar", element: <div className="p-6">Календарь (F6)</div> },
+              { path: "/operator/rules", element: <RulesPage /> },
+              { path: "/operator/settings", element: <OperatorSettingsPage /> },
+              { path: "/operator/logs", element: <LogsPage /> },
+              { path: "/operator/calendar", element: <CalendarPage /> },
             ],
           },
           { path: "/", element: <HomeRedirect /> },
