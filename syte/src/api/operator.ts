@@ -125,3 +125,80 @@ export const useDeleteUser = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["op", "users"] }),
   });
 };
+
+// --- Правила расписания ---
+export type ScheduleRule = components["schemas"]["ScheduleRuleOut"];
+export type RuleKind = components["schemas"]["RuleKind"];
+
+export const useRules = (onlyActive = false) =>
+  useQuery({
+    queryKey: ["op", "rules", onlyActive],
+    queryFn: () => apiFetch<ScheduleRule[]>(`/operator/schedule-rules?only_active=${onlyActive}`),
+  });
+
+export const useCreateRule = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      apiFetch<ScheduleRule>("/operator/schedule-rules", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["op", "rules"] }),
+  });
+};
+
+export const useUpdateRule = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) =>
+      apiFetch<ScheduleRule>(`/operator/schedule-rules/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["op", "rules"] }),
+  });
+};
+
+export const useDeleteRule = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch<void>(`/operator/schedule-rules/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["op", "rules"] }),
+  });
+};
+
+// --- Настройки ---
+export type OperatorSettings = components["schemas"]["SettingsOut"];
+
+export const useOperatorSettings = () =>
+  useQuery({
+    queryKey: ["op", "settings"],
+    queryFn: () => apiFetch<OperatorSettings>("/operator/settings"),
+  });
+
+export const useSaveOperatorSettings = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { generation_days: number; deadline_offset_days: number; deadline_time: string }) =>
+      apiFetch<OperatorSettings>("/operator/settings", { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["op", "settings"] }),
+  });
+};
+
+// --- Логи ---
+export type AuditLog = components["schemas"]["AuditLogOut"];
+
+export const useLogs = (params: { from?: string; to?: string; userId?: string }) =>
+  useQuery({
+    queryKey: ["op", "logs", params.from ?? "", params.to ?? "", params.userId ?? ""],
+    queryFn: () => {
+      const q = new URLSearchParams();
+      if (params.from) q.set("from", params.from);
+      if (params.to) q.set("to", params.to);
+      if (params.userId) q.set("user_id", params.userId);
+      const suffix = q.toString() ? `?${q}` : "";
+      return apiFetch<AuditLog[]>(`/operator/logs${suffix}`);
+    },
+  });
+
+// --- Календарь ---
+export const useRegenerateDays = () =>
+  useMutation({
+    mutationFn: ({ from, to }: { from: string; to: string }) =>
+      apiFetch<void>("/operator/days/regenerate", { method: "POST", body: JSON.stringify({ from, to }) }),
+  });
