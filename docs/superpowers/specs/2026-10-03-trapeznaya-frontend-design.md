@@ -1,0 +1,295 @@
+# Трапезная МДА — Frontend (React SPA): дизайн
+
+**Дата:** 2026-10-03
+**Статус:** черновик на ревью
+**Область:** только Frontend (React SPA). Backend — см. `2026-10-03-trapeznaya-mda-backend-design.md`.
+**Каталог:** `syte/`
+
+---
+
+## 1. Обзор и цель
+
+Одностраничное приложение (SPA) «Трапезная МДА», обслуживающее четыре роли через общий визуальный язык и переиспользуемые компоненты.
+
+- **Питающийся** отмечает «иду/не иду» по приёмам и выбирает тип питания на день.
+- **Администратор** заходит в **те же** экраны, что и питающийся, но для конкретного человека из списка своих залов.
+- **Оператор** ведёт справочники, правила, настройки, логи.
+- **Бухгалтер** смотрит отчёты за день/период и выгружает Excel.
+
+Приоритет — **мобильные устройства** (mobile-first), с полноценным видом на ПК.
+
+---
+
+## 2. Роли и маршруты
+
+| Роль | Маршруты |
+|---|---|
+| все | `/login` |
+| `eater` | `/menu`, `/settings` |
+| `admin` | `/people`, `/people/:userId` (внутри — те же `Моё меню` и `Настройки` для человека) |
+| `operator` | `/operator/users`, `/operator/halls`, `/operator/meal-types`, `/operator/rules`, `/operator/settings`, `/operator/logs`, `/operator/calendar` |
+| `accountant` | `/reports/daily`, `/reports/period` |
+
+- После входа — редирект на «домашний» маршрут роли (`/menu`, `/people`, `/operator/users`, `/reports/daily`).
+- Гварды: `RequireAuth` (нет сессии → `/login`), `RequireRole` (нет прав → 403-страница).
+
+---
+
+## 3. Стек и архитектура
+
+- **Vite + React + TypeScript**.
+- **React Router** (v7, data router).
+- **TanStack Query** (кэш, запросы, инвалидация).
+- **Tailwind CSS v4** (`@tailwindcss/vite`), тёмная тема через класс `dark` + `dark:`-варианты.
+- **Vitest** — юнит-тесты **логики** (без компонентных и E2E).
+- Типы API — **генерируются** из OpenAPI бэкенда (`openapi-typescript`), файл `src/api/schema.d.ts` (не редактируется руками).
+
+Слоистость: `api/` (сеть и типы) → `features/` (экраны и фичевые компоненты) → `components/ui/` (кит) → `lib/` (чистая логика).
+
+---
+
+## 4. Структура проекта
+
+```
+syte/
+  index.html
+  package.json
+  vite.config.ts            # dev-proxy /api -> http://localhost:8000
+  tsconfig.json
+  tailwind (CSS-first в src/styles/index.css)
+  scripts/gen-api-types.mjs # openapi-typescript из ../server/openapi.json или http://localhost:8000/openapi.json
+  src/
+    main.tsx
+    app/
+      router.tsx
+      providers.tsx         # QueryClientProvider, ThemeProvider, ToastProvider
+      AppLayout.tsx         # Sidebar + Header + <Outlet/>
+      guards.tsx            # RequireAuth, RequireRole
+    api/
+      client.ts             # fetch-обёртка
+      fingerprint.ts        # UUID + sha256(uuid:ua)
+      schema.d.ts           # <-- генерируется
+      auth.ts  me.ts  admin.ts  catalog.ts  reports.ts
+      operator/{users,halls,mealTypes,rules,settings,logs,calendar}.ts
+    components/ui/          # Button, Input, Select, Modal, Card, Table, Segmented, Toggle, Badge, Spinner, EmptyState, Toast, IconButton
+    features/
+      auth/LoginPage.tsx
+      menu/                 # DayGrid, DayCard, DayEditModal, useCalendar, useSaveDay
+      defaults/DefaultsForm.tsx
+      theme/ThemeSection.tsx
+      people/PeopleList.tsx # список + поиск
+      operator/             # UsersPage, HallsPage, MealTypesPage, RulesPage, SettingsPage, LogsPage, CalendarPage
+      reports/              # DailyReportPage, PeriodReportPage
+    lib/
+      theme.ts   dates.ts   dayStatus.ts   mealKind.ts
+    styles/index.css
+  tests/                    # vitest: lib/*, api/client (mock fetch)
+```
+
+---
+
+## 5. API-слой
+
+**Клиент** (`api/client.ts`) — обёртка над `fetch`:
+- базовый префикс `/api/v1`; `credentials: "same-origin"` (cookie `mda_session` едет сама);
+- на каждый запрос добавляет `X-Device-Fingerprint`;
+- `204` → `undefined`; `2xx` → JSON;
+- **`401`** → вызывает `onUnauthorized` (разлогин + переход на `/login?reason=expired`);
+- **`409`** → пробрасывает типизированную ошибку `ConflictError` с телом `{detail:"record_changed", current}` — обрабатывается формой дня;
+- прочие ошибки → `ApiError{status, detail}`.
+
+**Используемые эндпоинты** (все с cookie; кроме `/auth/login`):
+
+| Назначение | Запрос |
+|---|---|
+| вход | `POST /auth/login {login,password}` + заголовок отпечатка → `MeOut` |
+| выход | `POST /auth/logout` |
+| текущий | `GET /auth/me` → `MeOut` |
+| каталог типов | `GET /catalog/meal-types` → `MealTypeOut[]` (только активные) |
+| питающийся: дефолты | `GET/PUT /me/defaults` |
+| питающийся: календарь | `GET /me/calendar?from&to` → `DayStateOut[]` |
+| питающийся: день | `PUT /me/days/{date}` |
+| админ: люди | `GET /admin/users?hall_id=` → `AdminUserOut[]` |
+| админ: дефолты человека | `GET/PUT /admin/users/{id}/defaults` |
+| админ: календарь человека | `GET /admin/users/{id}/calendar?from&to` |
+| админ: день человека | `PUT /admin/requests/{user_id}/{date}` |
+| бухгалтер: отчёт | `GET /accountant/report?date&hall_id`, `GET /accountant/report/period?from&to&hall_id` |
+| бухгалтер: Excel | `GET /accountant/report/export?...`, `GET /accountant/report/period/export?...` |
+| оператор | `/operator/*` (users, halls, meal-types, schedule-rules, settings, logs, days/regenerate) |
+
+**Ключевые формы данных:**
+
+```
+MeOut            = UserOut + halls: [{id, name}]
+MealTypeOut      = {id, name, sort_order, is_active, icon|null}
+DayStateOut      = {date, meal_type_id|null,
+                    items: [{meal_kind, is_served, is_going, is_reserve}] (4, breakfast..dinner),
+                    version|null, has_request, deadline_at, editable, available}
+DefaultsOut      = {default_meal_type_id|null, meals: {breakfast,lunch,snack,dinner: bool}}
+PUT day body     = {meal_type_id|null, meals: {<meal_kind>: bool}, version|null}
+409 body         = {detail:"record_changed", current: DayStateOut}
+```
+
+**Типы генерируются** командой `npm run gen:api` (скрипт бьёт в `http://localhost:8000/openapi.json` или читает `../server/openapi.json`) в `src/api/schema.d.ts`; тонкие ручные алиасы — в `api/*.ts`.
+
+---
+
+## 6. Сессия и отпечаток
+
+- Токен на клиенте **не хранится** (httpOnly cookie).
+- При старте приложения — `GET /auth/me`: успех → рендер приложения; `401` → `/login`.
+- **Отпечаток** (`api/fingerprint.ts`): при первом обращении генерируем UUID (`crypto.randomUUID()`), кладём в `localStorage["mda.device"]`; значение заголовка = `sha256(uuid + ":" + navigator.userAgent)` (WebCrypto), кэшируется в модуле. Если сервер вернул `401` из-за смены отпечатка — сессия аннулирована, показываем `/login?reason=expired`.
+- Выход — кнопка в сайдбаре: `POST /auth/logout`, очистка кэша React Query, переход на `/login`.
+
+---
+
+## 7. Тема
+
+- Варианты: **Системная / Светлая / Тёмная**; по умолчанию — системная.
+- Реализация: класс `dark` на `<html>`; выбор хранится в `localStorage["mda.theme"]`; при «системной» следим за `prefers-color-scheme`.
+- Переключатель — в «Настройках», **отдельным блоком** (не вперемешку с питанием).
+
+---
+
+## 8. Визуальный язык
+
+**Токены (светлая / тёмная):**
+
+| Токен | Светлая | Тёмная | Роль |
+|---|---|---|---|
+| `--paper` | `#F7F8F6` | `#141816` | фон |
+| `--surface` | `#FFFFFF` | `#1D2320` | поверхности |
+| `--ink` | `#1E2A24` | `#E8EDE9` | текст |
+| `--muted` | `#67766D` | `#93A29A` | вторичный |
+| `--accent` | `#2F6B4E` | `#5FA57E` | акцент, «иду» |
+| `--not-going` | `#B0463C` | `#D9786F` | «не иду» |
+| `--lock` | `#7C7466` | `#8A8378` | дедлайн/замок |
+| `--absent` | `#C2703A` | `#D98A55` | «дня нет» |
+
+**Типографика:** системный шрифт; шкала `12/13/14/16/20/26`, веса `400/500/600`; **табличные цифры** (`tabular-nums`) во всех числах и таблицах.
+
+**Сигнатура — плитка дня.** Компактный квадрат: сверху — день недели и дата; внизу — **четыре «палочки»** (завтрак→ужин); в углу — **штамп типа питания** (иконка из `meal_type.icon`; если иконка не задана — штамп не показываем). Цвет палочек: `accent` (иду), `not-going` (не иду), `muted`-полупрозрачная (приём не подаётся). Заблокированный день — палочки в цвете `lock` + глиф замка; «дня нет» — плитка с рыжей (`absent`) обводкой и подписью.
+
+**Осознанный риск:** палочки-«насечки» вместо привычных кружков — на миниатюре читаются как журнал отметок; при необходимости заменяются на кружки без изменения остальной системы.
+
+---
+
+## 9. Экраны
+
+### 9.1 Вход `/login`
+Карточка по центру: `Логин`, `Пароль`, кнопка **«Войти»**. Баннер при `?reason=expired`: «Сессия истекла — войдите заново». Ошибка → «Неверный логин или пароль».
+
+### 9.2 Меню `/menu` (и `/people/:userId` для админа)
+- **Сетка плиток-дней** от **сегодня** вперёд (прошедшие не показываем). Диапазон запроса — `from = сегодня`, `to = сегодня + 30`; отображаются все вернувшиеся дни, включая `available=false` (рыжие «дня нет»).
+- Если ни одного дня нет — заглушка «Календарь ещё не сформирован».
+- Клик по доступной плитке → **модалка дня**.
+- Для админа: шапка со кнопкой **«← К списку»** и именем человека.
+
+**Модалка дня** (`DayEditModal`):
+- заголовок: «Понедельник, 12 октября 2026»;
+- **блок выбора типа питания** — сегменты по тексту (без иконок), из `GET /catalog/meal-types`;
+- по строке на приём: `Завтрак/Обед/Полдник/Ужин` + сегмент **«Идёт / Не идёт»**; приёмы, где `is_served=false`, показаны как «не подаётся» и недоступны для выбора;
+- кнопки **«Отмена» / «Сохранить»**;
+- при `409` — тост «Данные изменил администратор — обновляем значения», форма подставляется из `current`;
+- при `403 day_locked` / `day_not_available` — тост и обновление плитки.
+
+### 9.3 Настройки `/settings` (и для человека у админа)
+- Блок **«Мои приёмы по умолчанию»**: сегменты «Идёт/Не идёт» по 4 приёмам.
+- Блок **«Тип питания по умолчанию»**: сегменты из каталога.
+- Блок **«Тема»**: Системная / Светлая / Тёмная.
+- Кнопка **«Сохранить»** (для админа — сохраняет дефолты человека).
+
+### 9.4 Люди `/people` (админ)
+Список питающихся залов админа: имя + зал(ы). **Поиск** — клиентский (по ФИО/логину). Тап по строке → `/people/:userId`. Пусто → «В ваших залах пока нет питающихся».
+
+### 9.5 Оператор
+Все разделы — **таблица + форма/модалка**:
+- **Пользователи**: список с ролью и залами; создание/редактирование; назначение залов; сброс пароля; мягкое/жёсткое удаление.
+- **Залы**: CRUD (название, активность).
+- **Типы питания**: CRUD + поле **иконки** (строка; превью из набора SVG).
+- **Правила**: CRUD; тип (повторяющееся/одноразовое), дни недели или даты, приёмы, залы.
+- **Настройки**: `generation_days`, `deadline_offset_days`, `deadline_time`.
+- **Логи**: таблица с фильтрами (период, пользователь).
+- **Календарь**: выбор диапазона + кнопка **«Перегенерировать»**.
+
+### 9.6 Отчёты `/reports/daily`, `/reports/period`
+- Выбор даты (день) / периода (`from`–`to`).
+- Таблица: строки — залы; группы колонок — приёмы; подколонки — по типам и отдельно резерв по типам; итоги.
+- Кнопка **«Скачать Excel»** — открывает соответствующий `.../export` эндпоинт (скачивание файла).
+- Пусто → «За выбранный период данных нет».
+
+---
+
+## 10. Компоненты
+
+**UI-кит** (`components/ui/`): `Button`, `IconButton`, `Input`, `Select`, `Modal`, `Card`, `Table`, `Segmented`, `Toggle`, `Badge`, `Spinner`, `EmptyState`, `Toast`.
+
+**Фичевые (общие для ролей):**
+- `DayGrid` / `DayCard` — сетка и плитка дня (одна реализация для питающегося и админа; различаются целевым пользователем и правами).
+- `DayEditModal` — модалка дня (тип + 4 приёма).
+- `DefaultsForm` — форма дефолтов (себя или человека).
+
+Передача «для кого» — через проп `target: {mode: "self"|"admin", userId?}`; хуки `useCalendar(target)` / `useSaveDay(target)` выбирают эндпоинт (`/me/*` или `/admin/*`).
+
+---
+
+## 11. Чистая логика (`lib/`)
+
+- **`dayStatus.ts`** — по `DayStateOut` даёт статус плитки: `absent` (available=false) → `locked` (editable=false) → `editable`; и статус гнезда: `going` / `not_going` / `not_served`.
+- **`dates.ts`** — русские форматы: «3 октября», «Понедельник, 12 октября 2026», диапазоны, `iso(date)`.
+- **`mealKind.ts`** — порядок и подписи приёмов (`breakfast→Завтрак`, …, `dinner→Ужин`).
+- **`theme.ts`** — вычисление активной темы, применение класса, подписка на `prefers-color-scheme`.
+
+---
+
+## 12. Адаптив (mobile-first)
+
+| Элемент | Мобильный (<640) | Планшет (≥640) | ПК (≥1024) |
+|---|---|---|---|
+| Сайдбар | **свёрнут** (иконочная полоса), раскрывается тапом | свёрнут, раскрывается | раскрыт, можно свернуть |
+| Сетка дней | 3 в ряд («миниатюра») | 4–6 | 6–8 |
+| Модалка | почти на всю ширину, снизу | по центру | по центру |
+| Таблицы | горизонтальный скролл | скролл/сжатие | полный вид |
+
+Доступность: тап-зоны ≥44px, видимый фокус, `prefers-reduced-motion` уважается.
+
+---
+
+## 13. Тексты интерфейса
+
+Единый словарь действий: **«Идёт» / «Не идёт»**, **«Сохранить» / «Отмена»**, **«Скачать Excel»**, **«Перегенерировать»**. Сообщения: «Сессия истекла — войдите заново», «Неверный логин или пароль», «Данные изменил администратор — обновляем значения», «Календарь ещё не сформирован», «Дня нет», «В ваших залах пока нет питающихся», «За выбранный период данных нет». Ошибки — без «извинений», с объяснением и действием.
+
+---
+
+## 14. Тестирование
+
+Только **юнит-тесты логики** (Vitest): `dayStatus` (все ветки: absent/locked/editable, not_served), `dates` (форматы, границы), `mealKind`, `theme`, `api/client` (моки `fetch`: проброс `401`, `409` с `current`, парсинг ошибок), `fingerprint` (стабильность значения при неизменных входных). Компонентные и E2E — **не делаем** на этом этапе.
+
+---
+
+## 15. Деплой
+
+- **Docker (multi-stage)**: сборка на `node:24-alpine` → статика; рантайм — `nginx:alpine`, раздаёт `dist/`.
+- **nginx**: `try_files ... /index.html` для SPA-роутов; `location /api/ { proxy_pass http://api:8000; }` — **same-origin**, поэтому cookie `SameSite=Lax` работают, CORS не нужен.
+- Сервис **`frontend`** добавляется в `server/docker-compose.yml` (или в корневой `docker-compose.yml`), публикует `80`.
+- Локальная разработка: Vite dev-сервер с прокси `/api` → `http://localhost:8000`.
+
+---
+
+## 16. Вне области
+
+- Компонентные/E2E-тесты (Playwright) — позже.
+- i18n — только русский.
+- Оффлайн/PWA, realtime/WebSocket — нет (вместо realtime — `409` в модалке).
+- Экспорт Excel — делается на бэке (готов), фронт только качает файл.
+- Смена пароля пользователем — нет (только оператор).
+
+---
+
+## 17. Глоссарий
+
+- **Плитка дня** — карточка одного дня в сетке календаря.
+- **Гнездо/палочка** — индикатор одного приёма внутри плитки.
+- **Штамп типа** — иконка типа питания дня (`meal_type.icon`).
+- **target** — для кого открыт экран Меню/Настройки: `self` (питающийся) или `admin` (человек).
+- **Отпечаток** — `sha256(uuid + ":" + userAgent)`, отправляется заголовком `X-Device-Fingerprint`.
