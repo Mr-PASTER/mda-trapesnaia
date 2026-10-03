@@ -17,9 +17,18 @@ const PATHS: Record<string, string[]> = {
   report: ["M7 3h7l4 4v14H7Z", "M10 12h7M10 16h7"],
   chart: ["M4 20h16", "M7 16v-5M12 16V8M17 16v-8"],
   logout: ["M15 12H4", "M8 8l-4 4 4 4", "M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"],
+  lock: ["M6 11h12v9H6Z", "M8.5 11V8a3.5 3.5 0 0 1 7 0v3", "M12 14.5v2"],
 };
 
-export function Icon({ name, className = "h-5 w-5" }: { name: string; className?: string }) {
+export function Icon({
+  name,
+  className = "h-5 w-5",
+  title,
+}: {
+  name: string;
+  className?: string;
+  title?: string;
+}) {
   const paths = PATHS[name];
   if (!paths) return null;
   return (
@@ -31,8 +40,11 @@ export function Icon({ name, className = "h-5 w-5" }: { name: string; className?
       strokeWidth="1.6"
       strokeLinecap="round"
       strokeLinejoin="round"
-      aria-hidden="true"
+      role={title ? "img" : undefined}
+      aria-label={title}
+      aria-hidden={title ? undefined : true}
     >
+      {title && <title>{title}</title>}
       {paths.map((d) => (
         <path key={d} d={d} />
       ))}

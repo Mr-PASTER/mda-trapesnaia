@@ -1,4 +1,5 @@
 import { MealTypeIcon } from "../../components/ui/MealTypeIcon";
+import { Icon } from "../../components/ui/Icon";
 import { mealStatus, tileStatus } from "../../lib/dayStatus";
 import { formatDayShort, formatWeekdayShort } from "../../lib/dates";
 import { MEAL_ORDER } from "../../lib/mealKind";
@@ -57,7 +58,7 @@ export function DayCard({
       )}
 
       {status === "locked" && (
-        <span className="absolute right-2 bottom-2 text-[11px] text-lock" title="Приём закрыт">🔒</span>
+        <Icon name="lock" title="Приём закрыт" className="absolute bottom-2 right-2 h-3.5 w-3.5 text-lock" />
       )}
     </button>
   );
