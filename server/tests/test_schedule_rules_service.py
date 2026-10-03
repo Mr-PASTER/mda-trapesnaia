@@ -66,3 +66,23 @@ async def test_deactivate_rule(db_session):
     await schedule_rules.deactivate_rule(db_session, actor_id=actor.id, rule_id=rule.id)
     assert rule.is_active is False
     assert await schedule_rules.list_rules(db_session) == []
+
+
+async def test_reactivate_rule_keeps_children(db_session):
+    actor, h1, _ = await _actor_halls(db_session)
+    rule = await schedule_rules.create_rule(
+        db_session, actor_id=actor.id, kind=RuleKind.recurring,
+        meal_kinds=[MealKind.breakfast], hall_ids=[h1.id], weekdays=[6],
+    )
+    await schedule_rules.deactivate_rule(db_session, actor_id=actor.id, rule_id=rule.id)
+
+    # Частичное обновление только is_active не должно стирать приёмы, залы и дни.
+    again = await schedule_rules.update_rule(
+        db_session, actor_id=actor.id, rule_id=rule.id, is_active=True,
+    )
+
+    assert again.is_active is True
+    assert [r.id for r in await schedule_rules.list_rules(db_session)] == [rule.id]
+    assert await schedule_rules.get_meal_kinds(db_session, rule.id) == [MealKind.breakfast]
+    assert await schedule_rules.get_hall_ids(db_session, rule.id) == [h1.id]
+    assert [w.weekday for w in await schedule_rules.get_weekdays(db_session, rule.id)] == [6]

@@ -60,6 +60,7 @@ export function RulesPage() {
   const { data: rules, isLoading } = useRules();
   const { data: halls } = useHalls();
   const remove = useDeleteRule();
+  const update = useUpdateRule();
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<ScheduleRule | null>(null);
 
@@ -113,7 +114,7 @@ export function RulesPage() {
                     <Button variant="ghost" onClick={() => setEditing(rule)}>
                       Изменить
                     </Button>
-                    {rule.is_active && (
+                    {rule.is_active ? (
                       <Button
                         variant="danger"
                         onClick={async () => {
@@ -126,6 +127,19 @@ export function RulesPage() {
                         }}
                       >
                         Выключить
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={async () => {
+                          try {
+                            await update.mutateAsync({ id: rule.id, body: { is_active: true } });
+                            toast("Правило включено");
+                          } catch (err) {
+                            reportError(err, toast);
+                          }
+                        }}
+                      >
+                        Включить
                       </Button>
                     )}
                   </div>
