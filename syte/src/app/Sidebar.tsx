@@ -31,10 +31,12 @@ const NAV: Record<string, Item[]> = {
     { to: "/reports/daily", label: "Отчёт за день", icon: "report" },
     { to: "/reports/period", label: "Отчёт за период", icon: "chart" },
     { to: "/menu", label: "Моё меню", icon: "menu", soon: true },
+    { to: "/settings", label: "Настройки", icon: "tune" },
   ],
   accountant: [
     { to: "/reports/daily", label: "Отчёт за день", icon: "report" },
     { to: "/reports/period", label: "Отчёт за период", icon: "chart" },
+    { to: "/settings", label: "Настройки", icon: "tune" },
   ],
 };
 

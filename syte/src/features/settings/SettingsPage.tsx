@@ -1,9 +1,16 @@
 import { Link } from "react-router";
+import { useCurrentUser } from "../../api/auth";
 import { DefaultsForm } from "../defaults/DefaultsForm";
 import { ThemeSection } from "../theme/ThemeSection";
+import { participatesInMeals } from "../../lib/roles";
 import type { Target } from "../../lib/target";
 
 export function SettingsPage({ target, readOnly = false }: { target: Target; readOnly?: boolean }) {
+  const { data: me } = useCurrentUser();
+  const showDefaults =
+    target.mode === "self" ? participatesInMeals(me?.role) : true;
+  const showTheme = target.mode === "self";
+
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -32,9 +39,9 @@ export function SettingsPage({ target, readOnly = false }: { target: Target; rea
           Просмотр: оператор не редактирует питание питающегося.
         </p>
       ) : (
-        <DefaultsForm target={target} />
+        showDefaults && <DefaultsForm target={target} />
       )}
-      <ThemeSection />
+      {showTheme && <ThemeSection />}
     </div>
   );
 }
