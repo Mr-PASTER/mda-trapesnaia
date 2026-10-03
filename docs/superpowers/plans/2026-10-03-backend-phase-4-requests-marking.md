@@ -863,7 +863,10 @@ async def update_defaults(
             await db.execute(select(UserMealDefault).where(UserMealDefault.user_id == user.id))
         ).scalars().all()
     }
-    for meal_kind, going in meals.items():
+    # Пишем ровно по одной строке на каждый приём (не только переданные),
+    # чтобы get_defaults был детерминированным.
+    for meal_kind in MealKind:
+        going = meals.get(meal_kind, False)
         row = rows.get(meal_kind)
         if row is None:
             db.add(UserMealDefault(user_id=user.id, meal_kind=meal_kind, is_going=going))
