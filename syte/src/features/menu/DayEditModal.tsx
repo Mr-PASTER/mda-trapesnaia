@@ -67,7 +67,7 @@ export function DayEditModal({
               type="button"
               onClick={() => setMealTypeId(t.id)}
               className={`min-h-11 rounded-xl px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                mealTypeId === t.id ? "bg-accent text-white" : "border border-border text-ink hover:bg-paper"
+                mealTypeId === t.id ? "bg-accent text-on-accent" : "border border-border text-ink hover:bg-paper"
               }`}
             >
               {t.name}
@@ -87,7 +87,7 @@ export function DayEditModal({
                     type="button"
                     onClick={() => setGoing((g) => ({ ...g, [kind]: true }))}
                     className={`min-h-11 rounded-xl px-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                      going[kind] ? "bg-accent text-white" : "border border-border text-ink hover:bg-paper"
+                      going[kind] ? "bg-accent text-on-accent" : "border border-border text-ink hover:bg-paper"
                     }`}
                   >
                     Идёт
@@ -96,7 +96,7 @@ export function DayEditModal({
                     type="button"
                     onClick={() => setGoing((g) => ({ ...g, [kind]: false }))}
                     className={`min-h-11 rounded-xl px-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                      !going[kind] ? "bg-not-going text-white" : "border border-border text-ink hover:bg-paper"
+                      !going[kind] ? "bg-not-going text-on-accent" : "border border-border text-ink hover:bg-paper"
                     }`}
                   >
                     Не идёт

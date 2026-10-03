@@ -75,7 +75,7 @@ export function Sidebar() {
             className={({ isActive }) =>
               `flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm ${
                 open ? "" : "justify-center"
-              } ${isActive ? "bg-accent text-white" : "text-ink hover:bg-paper"}`
+              } ${isActive ? "bg-accent text-on-accent" : "text-ink hover:bg-paper"}`
             }
           >
             <span className="text-lg leading-none" aria-hidden="true">

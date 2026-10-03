@@ -12,6 +12,7 @@
   --lock: #7c7466;
   --absent: #c2703a;
   --border: #e3e7e2;
+  --on-accent: #ffffff;
 }
 
 .dark {
@@ -24,6 +25,7 @@
   --lock: #8a8378;
   --absent: #d98a55;
   --border: #2a322d;
+  --on-accent: #10140f;
 }
 
 @theme inline {
@@ -36,6 +38,7 @@
   --color-lock: var(--lock);
   --color-absent: var(--absent);
   --color-border: var(--border);
+  --color-on-accent: var(--on-accent);
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 

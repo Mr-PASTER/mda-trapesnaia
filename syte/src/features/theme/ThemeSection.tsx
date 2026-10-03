@@ -27,7 +27,7 @@ export function ThemeSection() {
             onClick={() => choose(option.value)}
             aria-pressed={theme === option.value}
             className={`min-h-11 rounded-xl px-4 text-sm ${
-              theme === option.value ? "bg-accent text-surface" : "border border-border text-muted"
+              theme === option.value ? "bg-accent text-on-accent" : "border border-border text-muted"
             }`}
           >
             {option.label}
