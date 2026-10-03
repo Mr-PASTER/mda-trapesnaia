@@ -6,12 +6,16 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
-    MealKind, MealType, Request, RequestItem, User, UserMealDefault, UserRole,
+    Day, MealKind, MealType, Request, RequestItem, User, UserMealDefault, UserRole,
 )
 from app.services import access, audit, deadline
 
 
 class DayLocked(Exception):
+    pass
+
+
+class DayNotAvailable(Exception):
     pass
 
 
@@ -63,6 +67,12 @@ async def save_day(
     if locked and not is_admin_edit:
         raise DayLocked()
     reserve_changes = is_admin_edit and locked
+
+    day_exists = (
+        await db.execute(select(Day.id).where(Day.date == day_date))
+    ).scalar_one_or_none() is not None
+    if not day_exists:
+        raise DayNotAvailable()
 
     if meal_type_id is not None:
         mt = await db.get(MealType, meal_type_id)

@@ -31,6 +31,7 @@ def _day_out(state: day_view.DayState) -> DayStateOut:
         version=state.version,
         has_request=state.has_request,
         deadline_at=state.deadline_at,
+        available=state.available,
         editable=state.editable,
     )
 
@@ -107,6 +108,8 @@ async def save_for_user(
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="forbidden")
     except requests.DayLocked:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="day_locked")
+    except requests.DayNotAvailable:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="day_not_available")
     except requests.MealTypeInvalid:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="invalid_meal_type")
     except requests.VersionConflict:

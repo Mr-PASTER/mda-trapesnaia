@@ -119,3 +119,12 @@ async def test_admin_edit_after_deadline_sets_reserve(db_session):
     )
     items = await _items(db_session, req.id)
     assert items[MealKind.dinner].is_reserve is True
+
+
+async def test_save_day_without_day_row_raises(db_session):
+    op, hall, mt, eater = await _setup(db_session)
+    with pytest.raises(svc.DayNotAvailable):
+        await svc.save_day(
+            db_session, actor=eater, target=eater, day_date=dt.date(2026, 10, 12),
+            meal_type_id=mt.id, meals={MealKind.lunch: True}, version=None,
+        )

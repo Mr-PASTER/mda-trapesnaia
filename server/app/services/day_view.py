@@ -27,6 +27,7 @@ class DayState:
     version: int | None
     has_request: bool
     deadline_at: datetime
+    available: bool
     editable: bool
 
 
@@ -81,6 +82,10 @@ async def get_day_state(
         going = {mk: defaults.get(mk, False) for mk in MealKind}
         reserve = {mk: False for mk in MealKind}
 
+    available = (
+        await db.execute(select(Day.id).where(Day.date == day_date))
+    ).scalar_one_or_none() is not None
+
     deadline_at = await deadline.deadline_for(db, day_date)
     locked = await deadline.is_locked(db, day_date, now=now)
 
@@ -99,5 +104,6 @@ async def get_day_state(
         version=version,
         has_request=has_request,
         deadline_at=deadline_at,
-        editable=not locked,
+        available=available,
+        editable=available and not locked,
     )

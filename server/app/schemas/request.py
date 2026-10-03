@@ -21,6 +21,7 @@ class DayStateOut(BaseModel):
     version: int | None
     has_request: bool
     deadline_at: datetime
+    available: bool
     editable: bool
 
 

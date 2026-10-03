@@ -3,9 +3,12 @@ import datetime as dt
 import pytest
 
 from app.core.security import hash_password
-from app.models import Hall, MealKind, MealType, User, UserHall, UserRole
+from app.models import (
+    Day, DayHallMeal, Hall, MealKind, MealType, User, UserHall, UserRole,
+)
 
 FP = "dev-1"
+DAY_OFFSET = 30
 
 
 @pytest.fixture
@@ -22,6 +25,13 @@ async def eater_headers(client, db_session):
     await db_session.flush()
     db_session.add(UserHall(user_id=user.id, hall_id=hall.id))
     user.default_meal_type_id = mt.id
+    day = Day(date=dt.date.today() + dt.timedelta(days=DAY_OFFSET))
+    db_session.add(day)
+    await db_session.flush()
+    for mk in MealKind:
+        db_session.add(
+            DayHallMeal(day_id=day.id, hall_id=hall.id, meal_kind=mk, is_served=True)
+        )
     await db_session.commit()
     r = await client.post(
         "/api/v1/auth/login",
@@ -48,7 +58,7 @@ async def test_defaults_get_and_put(client, eater_headers):
 
 
 async def test_save_day_lazy_request_and_lock(client, eater_headers):
-    future = (dt.date.today() + dt.timedelta(days=30)).isoformat()
+    future = (dt.date.today() + dt.timedelta(days=DAY_OFFSET)).isoformat()
     r = await client.put(
         f"/api/v1/me/days/{future}",
         headers=eater_headers,
@@ -67,9 +77,44 @@ async def test_save_day_lazy_request_and_lock(client, eater_headers):
     assert r.status_code == 409
     assert r.json()["detail"] == "record_changed"
 
+    # день без строки в days -> недоступен для правки
+    missing = (dt.date.today() + dt.timedelta(days=DAY_OFFSET + 1)).isoformat()
+    r = await client.put(
+        f"/api/v1/me/days/{missing}", headers=eater_headers, json={"meals": {}}
+    )
+    assert r.status_code == 403
+    assert r.json()["detail"] == "day_not_available"
+
     # прошлый день -> заблокировано
     past = (dt.date.today() - dt.timedelta(days=1)).isoformat()
     r = await client.put(
         f"/api/v1/me/days/{past}", headers=eater_headers, json={"meals": {}}
     )
     assert r.status_code == 403
+
+
+async def test_calendar_available_flag(client, eater_headers):
+    existing = (dt.date.today() + dt.timedelta(days=DAY_OFFSET)).isoformat()
+    missing = (dt.date.today() + dt.timedelta(days=DAY_OFFSET + 1)).isoformat()
+    r = await client.get(
+        f"/api/v1/me/calendar?from={existing}&to={missing}", headers=eater_headers
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert [d["date"] for d in body] == [existing, missing]
+    assert body[0]["available"] is True
+    assert body[1]["available"] is False
+
+
+async def test_calendar_range_validation(client, eater_headers):
+    r = await client.get(
+        "/api/v1/me/calendar?from=2026-11-05&to=2026-11-01", headers=eater_headers
+    )
+    assert r.status_code == 400
+    assert r.json()["detail"] == "invalid_range"
+
+    r = await client.get(
+        "/api/v1/me/calendar?from=2026-01-01&to=2026-06-01", headers=eater_headers
+    )
+    assert r.status_code == 400
+    assert r.json()["detail"] == "range_too_large"
