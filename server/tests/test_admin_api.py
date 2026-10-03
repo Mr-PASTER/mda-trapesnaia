@@ -38,7 +38,6 @@ async def admin_headers(client, db_session):
         headers={"X-Device-Fingerprint": FP},
     )
     return {
-        "Authorization": f"Bearer {r.json()['token']}",
         "X-Device-Fingerprint": FP,
     }, hall.id
 

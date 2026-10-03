@@ -16,7 +16,7 @@ async def op_headers(client, db_session):
     await db_session.commit()
     r = await client.post("/api/v1/auth/login", json={"login": "root", "password": "rootpass"},
                           headers={"X-Device-Fingerprint": FP})
-    return {"Authorization": f"Bearer {r.json()['token']}", "X-Device-Fingerprint": FP}
+    return {"X-Device-Fingerprint": FP}
 
 
 async def test_create_rule_and_regenerate(client, op_headers):

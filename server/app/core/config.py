@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     timezone: str = "Europe/Moscow"
     session_ttl_days: int = 7
 
+    session_cookie_name: str = "mda_session"
+    session_cookie_secure: bool = False
+    session_cookie_samesite: str = "lax"
+    session_cookie_path: str = "/"
+
     argon2_time_cost: int = 3
     argon2_memory_cost: int = 65536
     argon2_parallelism: int = 4

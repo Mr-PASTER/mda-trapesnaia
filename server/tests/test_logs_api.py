@@ -12,9 +12,9 @@ async def operator_headers(client, db_session):
              full_name="Root", role=UserRole.operator)
     db_session.add(u)
     await db_session.commit()
-    r = await client.post("/api/v1/auth/login", json={"login": "root", "password": "rootpass"},
-                          headers={"X-Device-Fingerprint": FP})
-    return {"Authorization": f"Bearer {r.json()['token']}", "X-Device-Fingerprint": FP}
+    await client.post("/api/v1/auth/login", json={"login": "root", "password": "rootpass"},
+                      headers={"X-Device-Fingerprint": FP})
+    return {"X-Device-Fingerprint": FP}
 
 
 async def test_logs_capture_actions(client, operator_headers):
@@ -33,5 +33,5 @@ async def test_logs_forbidden_for_eater(client, db_session):
     await db_session.commit()
     r = await client.post("/api/v1/auth/login", json={"login": "ivan", "password": "p"},
                           headers={"X-Device-Fingerprint": FP})
-    headers = {"Authorization": f"Bearer {r.json()['token']}", "X-Device-Fingerprint": FP}
+    headers = {"X-Device-Fingerprint": FP}
     assert (await client.get("/api/v1/operator/logs", headers=headers)).status_code == 403

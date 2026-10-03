@@ -150,18 +150,20 @@ Backend-сервис «Трапезная МДА»: HTTP API поверх Postgr
 - Тело: `{login, password}`. Заголовок `X-Device-Fingerprint: <hash>` (отпечаток вычисляет клиент).
 - Проверяем `login` + `password` (argon2), статус `is_active`.
 - Генерируем **случайный токен** (32 байта, `secrets.token_urlsafe`), сохраняем в `sessions` **хеш** токена (SHA-256), `device_fingerprint_hash` (SHA-256 от отпечатка), `expires_at = now + 7 дней`.
-- Возвращаем сырой токен клиенту (хранится только на клиенте).
+- Создаём сессию и ставим **httpOnly-cookie** `mda_session` (`HttpOnly`, `SameSite=Lax`, `Secure` — из настроек, `Max-Age` = TTL сессии). В теле токен **не возвращаем** — только `{user}`.
 
 **Отпечаток устройства** (B3): клиент при первом входе генерирует случайный UUID и хранит в `localStorage`; отпечаток = `sha256(device_uuid + ":" + user_agent)`. Отправляется заголовком на каждом запросе.
 
 **Каждый защищённый запрос**
-1. `Authorization: Bearer <token>` → находим сессию по хешу токена.
+1. Токен читаем из **cookie** `mda_session` (не из заголовка `Authorization`) → находим сессию по хешу токена. Нет cookie → `401 not_authenticated`.
 2. Сессия не отозвана и не истекла, иначе `401`.
 3. `device_fingerprint_hash` совпадает, иначе сессия **немедленно аннулируется** (`revoked_at = now`) → `401`.
 4. Обновляем `last_seen_at` и продлеваем `expires_at = now + 7 дней` (скользящий TTL).
 5. Загружаем пользователя, проверяем `is_active`.
 
-**Выход** `POST /api/v1/auth/logout` — `revoked_at = now` текущей сессии.
+**Выход** `POST /api/v1/auth/logout` — `revoked_at = now` текущей сессии и удаление cookie.
+
+> Клиент и API должны быть **same-origin** (dev — Vite-proxy, prod — nginx), тогда CORS не нужен, а `SameSite=Lax` прикрывает CSRF. При HTTPS в проде включается `SESSION_COOKIE_SECURE=true`.
 
 **Профиль** `GET /api/v1/auth/me` — `{id, login, full_name, role, halls:[...], default_meal_type_id}`.
 
@@ -256,7 +258,7 @@ Backend-сервис «Трапезная МДА»: HTTP API поверх Postgr
 
 ## 10. HTTP API (v1)
 
-Все защищённые запросы: `Authorization: Bearer <token>` + `X-Device-Fingerprint`.
+Все защищённые запросы: сессия из cookie `mda_session` + заголовок `X-Device-Fingerprint`.
 
 ### 10.1 Аутентификация
 - `POST /api/v1/auth/login`

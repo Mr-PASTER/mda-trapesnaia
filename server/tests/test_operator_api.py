@@ -19,7 +19,7 @@ async def _login(client, login="root", password="rootpass"):
     r = await client.post("/api/v1/auth/login", json={"login": login, "password": password},
                           headers={"X-Device-Fingerprint": FP})
     assert r.status_code == 200
-    return {"Authorization": f"Bearer {r.json()['token']}", "X-Device-Fingerprint": FP}
+    return {"X-Device-Fingerprint": FP}
 
 
 async def test_operator_crud_flow(client, operator_token):

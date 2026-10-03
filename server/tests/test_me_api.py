@@ -28,7 +28,7 @@ async def eater_headers(client, db_session):
         json={"login": "ivan", "password": "pass"},
         headers={"X-Device-Fingerprint": FP},
     )
-    return {"Authorization": f"Bearer {r.json()['token']}", "X-Device-Fingerprint": FP}
+    return {"X-Device-Fingerprint": FP}
 
 
 async def test_defaults_get_and_put(client, eater_headers):

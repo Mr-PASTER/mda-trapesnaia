@@ -14,9 +14,9 @@ async def accountant_headers(client, db_session):
              full_name="Бух", role=UserRole.accountant)
     db_session.add(u)
     await db_session.commit()
-    r = await client.post("/api/v1/auth/login", json={"login": "buh", "password": "bpass"},
-                          headers={"X-Device-Fingerprint": FP})
-    return {"Authorization": f"Bearer {r.json()['token']}", "X-Device-Fingerprint": FP}
+    await client.post("/api/v1/auth/login", json={"login": "buh", "password": "bpass"},
+                      headers={"X-Device-Fingerprint": FP})
+    return {"X-Device-Fingerprint": FP}
 
 
 @pytest.fixture
@@ -25,9 +25,9 @@ async def eater_headers(client, db_session):
              full_name="Иван", role=UserRole.eater)
     db_session.add(u)
     await db_session.commit()
-    r = await client.post("/api/v1/auth/login", json={"login": "ivan", "password": "ipass"},
-                          headers={"X-Device-Fingerprint": FP})
-    return {"Authorization": f"Bearer {r.json()['token']}", "X-Device-Fingerprint": FP}
+    await client.post("/api/v1/auth/login", json={"login": "ivan", "password": "ipass"},
+                      headers={"X-Device-Fingerprint": FP})
+    return {"X-Device-Fingerprint": FP}
 
 
 async def test_daily_report_shape(client, accountant_headers, db_session):
