@@ -36,5 +36,15 @@ services:
     ports:
       - "8000:8000"
 
+  frontend:
+    build:
+      context: ../syte
+    container_name: mda_frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+
 volumes:
   mda_pgdata:
