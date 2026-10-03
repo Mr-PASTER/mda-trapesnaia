@@ -20,6 +20,26 @@ async def test_create_and_list(db_session):
     assert names == ["Мясо"]
 
 
+async def test_icon_round_trip(db_session):
+    actor = await _actor(db_session)
+    m = await meal_types.create_meal_type(
+        db_session, actor_id=actor.id, name="Мясо", icon="meat", sort_order=1
+    )
+    assert m.icon == "meat"
+    assert [x.icon for x in await meal_types.list_meal_types(db_session)] == ["meat"]
+
+    updated = await meal_types.update_meal_type(
+        db_session, actor_id=actor.id, meal_type_id=m.id, icon="fish"
+    )
+    assert updated.icon == "fish"
+
+
+async def test_icon_is_optional(db_session):
+    actor = await _actor(db_session)
+    m = await meal_types.create_meal_type(db_session, actor_id=actor.id, name="Пост")
+    assert m.icon is None
+
+
 async def test_cannot_deactivate_last_active(db_session):
     actor = await _actor(db_session)
     m = await meal_types.create_meal_type(db_session, actor_id=actor.id, name="Мясо")

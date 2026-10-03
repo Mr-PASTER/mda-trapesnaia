@@ -24,7 +24,8 @@ async def create_meal_type(payload: MealTypeIn, db: AsyncSession = Depends(get_d
                            user: User = Depends(_guard)):
     try:
         mt = await meal_types.create_meal_type(
-            db, actor_id=user.id, name=payload.name, sort_order=payload.sort_order
+            db, actor_id=user.id, name=payload.name, icon=payload.icon,
+            sort_order=payload.sort_order,
         )
     except meal_types.MealTypeAlreadyExists:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="already_exists")
@@ -38,7 +39,8 @@ async def update_meal_type(meal_type_id: uuid.UUID, payload: MealTypeUpdate,
     try:
         mt = await meal_types.update_meal_type(
             db, actor_id=user.id, meal_type_id=meal_type_id, name=payload.name,
-            sort_order=payload.sort_order, is_active=payload.is_active,
+            icon=payload.icon, sort_order=payload.sort_order,
+            is_active=payload.is_active,
         )
     except LookupError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="meal_type_not_found")

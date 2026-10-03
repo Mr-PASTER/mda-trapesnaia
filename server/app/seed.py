@@ -7,17 +7,23 @@ from app.core.security import hash_password
 from app.db.session import SessionLocal
 from app.models import AppSettings, MealType, User, UserRole
 
-DEFAULT_MEAL_TYPES = ["Мясо", "Пост", "Рыба"]
+DEFAULT_MEAL_TYPES = [("Мясо", "meat"), ("Пост", "lent"), ("Рыба", "fish")]
 
 
 async def seed(db: AsyncSession, operator_login: str, operator_password: str) -> None:
     if await db.get(AppSettings, 1) is None:
         db.add(AppSettings(id=1))
 
-    existing = set((await db.execute(select(MealType.name))).scalars().all())
-    for i, name in enumerate(DEFAULT_MEAL_TYPES, start=1):
-        if name not in existing:
-            db.add(MealType(name=name, sort_order=i))
+    existing = {
+        mt.name: mt
+        for mt in (await db.execute(select(MealType))).scalars().all()
+    }
+    for i, (name, icon) in enumerate(DEFAULT_MEAL_TYPES, start=1):
+        mt = existing.get(name)
+        if mt is None:
+            db.add(MealType(name=name, icon=icon, sort_order=i))
+        elif mt.icon is None:
+            mt.icon = icon
 
     has_operator = (
         await db.execute(select(User.id).where(User.role == UserRole.operator))

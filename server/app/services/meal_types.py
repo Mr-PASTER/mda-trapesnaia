@@ -16,12 +16,13 @@ class LastMealType(Exception):
 
 
 async def create_meal_type(
-    db: AsyncSession, *, actor_id: uuid.UUID, name: str, sort_order: int = 0
+    db: AsyncSession, *, actor_id: uuid.UUID, name: str,
+    icon: str | None = None, sort_order: int = 0,
 ) -> MealType:
     name = name.strip()
     if await repo.get_by_name(db, name) is not None:
         raise MealTypeAlreadyExists(name)
-    mt = await repo.add(db, MealType(name=name, sort_order=sort_order))
+    mt = await repo.add(db, MealType(name=name, icon=icon, sort_order=sort_order))
     await audit.record(
         db, actor_id=actor_id, action="create", entity_type="meal_type",
         entity_id=str(mt.id), details={"name": name},
@@ -35,7 +36,8 @@ async def list_meal_types(db: AsyncSession, *, only_active: bool = True) -> list
 
 async def update_meal_type(
     db: AsyncSession, *, actor_id: uuid.UUID, meal_type_id: uuid.UUID,
-    name: str | None = None, sort_order: int | None = None, is_active: bool | None = None,
+    name: str | None = None, icon: str | None = None,
+    sort_order: int | None = None, is_active: bool | None = None,
 ) -> MealType:
     mt = await repo.get(db, meal_type_id)
     if mt is None:
@@ -46,6 +48,8 @@ async def update_meal_type(
         if existing is not None and existing.id != mt.id:
             raise MealTypeAlreadyExists(name)
         mt.name = name
+    if icon is not None:
+        mt.icon = icon
     if sort_order is not None:
         mt.sort_order = sort_order
     if is_active is False and mt.is_active and await repo.count_active(db) <= 1:
