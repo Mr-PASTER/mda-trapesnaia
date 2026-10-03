@@ -3,6 +3,7 @@ import { RequireAuth, RequireRole, HomeRedirect } from "./guards";
 import { AppLayout } from "./AppLayout";
 import { LoginPage } from "../features/auth/LoginPage";
 import { MenuPage } from "../features/menu/MenuPage";
+import { SettingsPage } from "../features/settings/SettingsPage";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -13,7 +14,7 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { path: "/menu", element: <MenuPage target={{ mode: "self" }} /> },
-          { path: "/settings", element: <div className="p-6">Настройки (F3)</div> },
+          { path: "/settings", element: <SettingsPage target={{ mode: "self" }} /> },
           {
             element: <RequireRole roles={["admin"]} />,
             children: [
