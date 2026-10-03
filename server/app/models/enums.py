@@ -13,3 +13,8 @@ class MealKind(str, enum.Enum):
     lunch = "lunch"
     snack = "snack"
     dinner = "dinner"
+
+
+class RuleKind(str, enum.Enum):
+    recurring = "recurring"
+    one_off = "one_off"
