@@ -1,7 +1,7 @@
 import uuid
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +14,7 @@ from app.schemas.request import (
     AdminUserOut,
     DayStateOut,
     DayUpdateRequest,
+    DefaultsOut,
     DefaultsUpdate,
     MealStateOut,
 )
@@ -41,6 +42,16 @@ async def _assert_hall_access(db: AsyncSession, actor: User, hall_id: uuid.UUID 
         return
     if hall_id not in await access.hall_ids_of(db, actor.id):
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="hall_forbidden")
+
+
+async def _assert_read_access(db: AsyncSession, actor: User, target: User) -> None:
+    # Operators may read any user; only admins are restricted to their halls.
+    if actor.role != UserRole.admin:
+        return
+    try:
+        await access.ensure_can_edit_user(db, actor=actor, target=target)
+    except access.AccessDenied:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="forbidden")
 
 
 @router.get("/users", response_model=list[AdminUserOut])
@@ -124,6 +135,44 @@ async def save_for_user(
     await db.commit()
     state = await day_view.get_day_state(db, user=target, day_date=day_date)
     return _day_out(state)
+
+
+@router.get("/users/{user_id}/defaults", response_model=DefaultsOut)
+async def get_user_defaults(
+    user_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    actor: User = Depends(_guard),
+):
+    target = await users_repo.get_by_id(db, user_id)
+    if target is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="user_not_found")
+    await _assert_read_access(db, actor, target)
+    d = await defaults.get_defaults(db, target)
+    return DefaultsOut(default_meal_type_id=d.meal_type_id, meals=d.meals)
+
+
+@router.get("/users/{user_id}/calendar", response_model=list[DayStateOut])
+async def get_user_calendar(
+    user_id: uuid.UUID,
+    from_: date = Query(alias="from"),
+    to: date = Query(...),
+    db: AsyncSession = Depends(get_db),
+    actor: User = Depends(_guard),
+):
+    target = await users_repo.get_by_id(db, user_id)
+    if target is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="user_not_found")
+    await _assert_read_access(db, actor, target)
+    if to < from_:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="invalid_range")
+    if (to - from_).days > 90:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="range_too_large")
+    result = []
+    current = from_
+    while current <= to:
+        result.append(_day_out(await day_view.get_day_state(db, user=target, day_date=current)))
+        current = current.fromordinal(current.toordinal() + 1)
+    return result
 
 
 @router.put("/users/{user_id}/defaults")
