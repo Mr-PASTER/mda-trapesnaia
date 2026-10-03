@@ -6,9 +6,9 @@ import type { DayState } from "../../api/me";
 import type { MealType } from "../../api/auth";
 
 const STICK: Record<string, string> = {
-  going: "bg-accent",
-  not_going: "bg-not-going",
-  not_served: "bg-muted/30",
+  going: "bg-ink",
+  not_going: "bg-muted/70",
+  not_served: "bg-border",
 };
 
 export function DayCard({
@@ -25,7 +25,7 @@ export function DayCard({
 
   const frame =
     status === "absent"
-      ? "border-absent/60 text-muted"
+      ? "border-accent/60 text-muted"
       : status === "locked"
         ? "border-border bg-surface/70"
         : "border-border bg-surface hover:border-accent/60";
@@ -45,7 +45,7 @@ export function DayCard({
       )}
 
       {status === "absent" ? (
-        <span className="text-[11px] font-medium text-absent">Дня нет</span>
+        <span className="text-[11px] font-medium text-accent">Дня нет</span>
       ) : (
         <span className="flex items-end gap-1" aria-hidden>
           {MEAL_ORDER.map((kind) => {

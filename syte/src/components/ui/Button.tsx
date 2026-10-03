@@ -12,7 +12,7 @@ export function Button({
   const styles: Record<Variant, string> = {
     primary: "bg-accent text-on-accent hover:brightness-95",
     ghost: "bg-transparent text-ink border border-border hover:bg-surface",
-    danger: "bg-not-going text-on-accent hover:brightness-95",
+    danger: "bg-ink text-paper hover:brightness-105",
   };
   return <button className={`${base} ${styles[variant]} ${className}`} {...props} />;
 }

@@ -30,7 +30,7 @@ export function MenuPage({ target }: { target: Target }) {
       </header>
 
       {isLoading && <Spinner />}
-      {isError && <p className="text-sm text-not-going">Не удалось загрузить календарь</p>}
+      {isError && <p className="text-sm font-medium text-accent">Не удалось загрузить календарь</p>}
       {days && days.length === 0 && (
         <EmptyState title="Календарь ещё не сформирован" hint="Дни появятся после генерации расписания" />
       )}

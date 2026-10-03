@@ -96,7 +96,7 @@ export function DayEditModal({
                     type="button"
                     onClick={() => setGoing((g) => ({ ...g, [kind]: false }))}
                     className={`min-h-11 rounded-xl px-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                      !going[kind] ? "bg-not-going text-on-accent" : "border border-border text-ink hover:bg-paper"
+                      !going[kind] ? "bg-ink text-paper" : "border border-border text-ink hover:bg-paper"
                     }`}
                   >
                     Не идёт

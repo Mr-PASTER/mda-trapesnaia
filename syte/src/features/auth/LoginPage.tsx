@@ -60,7 +60,7 @@ export function LoginPage() {
               required
             />
           </label>
-          {error && <p className="text-sm text-not-going">{error}</p>}
+          {error && <p className="text-sm font-medium text-accent">{error}</p>}
           <Button type="submit" disabled={busy}>
             {busy ? "Входим…" : "Войти"}
           </Button>
