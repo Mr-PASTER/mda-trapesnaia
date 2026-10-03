@@ -54,3 +54,19 @@ export function useSaveUserDay(userId: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["calendar"] }),
   });
 }
+
+export function useUserDefaults(userId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["defaults", "admin", userId],
+    queryFn: () => fetchUserDefaults(userId),
+    enabled,
+  });
+}
+
+export function useSaveUserDefaults(userId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: components["schemas"]["DefaultsUpdate"]) => saveUserDefaults(userId, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["defaults"] }),
+  });
+}

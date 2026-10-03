@@ -37,3 +37,15 @@ export function useSaveMyDay() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["calendar"] }),
   });
 }
+
+export function useMyDefaults(enabled = true) {
+  return useQuery({ queryKey: ["defaults", "me"], queryFn: fetchMyDefaults, enabled });
+}
+
+export function useSaveMyDefaults() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: components["schemas"]["DefaultsUpdate"]) => saveMyDefaults(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["defaults"] }),
+  });
+}

@@ -1,7 +1,8 @@
 import { useMyCalendar, useSaveMyDay } from "../../api/me";
 import { useSaveUserDay, useUserCalendar } from "../../api/admin";
+import type { Target } from "../../lib/target";
 
-export type Target = { mode: "self" } | { mode: "admin"; userId: string };
+export type { Target };
 
 export function useMenuDays(target: Target, from: string, to: string) {
   const isSelf = target.mode === "self";
