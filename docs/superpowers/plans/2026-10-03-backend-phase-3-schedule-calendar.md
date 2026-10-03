@@ -642,6 +642,10 @@ git commit -m "feat: add schedule rules service and schemas"
   - `regenerate_horizon(db) -> None`
 - **Важно:** сервис календаря читает модели правил **напрямую** (не импортирует `services/schedule_rules`).
 
+> **Уточнение при выполнении:** тест Task 3 создаёт правила **напрямую через модели**
+> (`ScheduleRule` + дочерние), а не через `services.schedule_rules` — чтобы Task 3 не зависел
+> от параллельно пишущегося сервиса правил (Task 2). Полный текст теста — в промпте субагента.
+
 - [ ] **Step 1: Написать падающий тест `tests/test_calendar_service.py`**
 
 ```python
