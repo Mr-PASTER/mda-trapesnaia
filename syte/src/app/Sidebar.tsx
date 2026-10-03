@@ -5,7 +5,7 @@ import { queryClient } from "./queryClient";
 import { readLocal, writeLocal } from "../lib/storage";
 import { Icon } from "../components/ui/Icon";
 
-type Item = { to: string; label: string; icon: string };
+type Item = { to: string; label: string; icon: string; soon?: boolean };
 
 const SIDEBAR_KEY = "mda.sidebar";
 
@@ -30,7 +30,7 @@ const NAV: Record<string, Item[]> = {
     { to: "/people", label: "Питающиеся", icon: "users" },
     { to: "/reports/daily", label: "Отчёт за день", icon: "report" },
     { to: "/reports/period", label: "Отчёт за период", icon: "chart" },
-    { to: "/menu", label: "Моё меню", icon: "menu" },
+    { to: "/menu", label: "Моё меню", icon: "menu", soon: true },
   ],
   accountant: [
     { to: "/reports/daily", label: "Отчёт за день", icon: "report" },
@@ -84,8 +84,21 @@ export function Sidebar() {
               } ${isActive ? "bg-accent text-on-accent" : "text-ink hover:bg-paper"}`
             }
           >
-            <Icon name={i.icon} />
+            <span className="relative">
+              <Icon name={i.icon} />
+              {!open && i.soon && (
+                <span
+                  className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-accent"
+                  aria-hidden="true"
+                />
+              )}
+            </span>
             {open && <span className="truncate">{i.label}</span>}
+            {open && i.soon && (
+              <span className="ml-auto rounded-full border border-border px-1.5 text-[10px] text-muted">
+                скоро
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>
