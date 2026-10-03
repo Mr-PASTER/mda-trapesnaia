@@ -22,8 +22,12 @@ export function saveMyDefaults(body: components["schemas"]["DefaultsUpdate"]): P
   return apiFetch<Defaults>("/me/defaults", { method: "PUT", body: JSON.stringify(body) });
 }
 
-export function useMyCalendar(from: string, to: string) {
-  return useQuery({ queryKey: ["calendar", "me", from, to], queryFn: () => fetchMyCalendar(from, to) });
+export function useMyCalendar(from: string, to: string, enabled = true) {
+  return useQuery({
+    queryKey: ["calendar", "me", from, to],
+    queryFn: () => fetchMyCalendar(from, to),
+    enabled,
+  });
 }
 
 export function useSaveMyDay() {

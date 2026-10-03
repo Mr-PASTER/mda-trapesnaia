@@ -39,10 +39,11 @@ export function usePeople(hallId?: string) {
   return useQuery({ queryKey: ["people", hallId ?? "all"], queryFn: () => fetchPeople(hallId) });
 }
 
-export function useUserCalendar(userId: string, from: string, to: string) {
+export function useUserCalendar(userId: string, from: string, to: string, enabled = true) {
   return useQuery({
     queryKey: ["calendar", "admin", userId, from, to],
     queryFn: () => fetchUserCalendar(userId, from, to),
+    enabled,
   });
 }
 

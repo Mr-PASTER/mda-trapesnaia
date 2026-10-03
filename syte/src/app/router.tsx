@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router";
 import { RequireAuth, RequireRole, HomeRedirect } from "./guards";
 import { AppLayout } from "./AppLayout";
 import { LoginPage } from "../features/auth/LoginPage";
+import { MenuPage } from "../features/menu/MenuPage";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -11,7 +12,7 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { path: "/menu", element: <div className="p-6">Меню (F2)</div> },
+          { path: "/menu", element: <MenuPage target={{ mode: "self" }} /> },
           { path: "/settings", element: <div className="p-6">Настройки (F3)</div> },
           {
             element: <RequireRole roles={["admin"]} />,
