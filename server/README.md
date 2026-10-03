@@ -53,9 +53,20 @@ uv run python -m app.seed
 
 Скопировать `.env.example` → `.env` и при необходимости поправить.
 
-## Запуск приложения (позже, когда появится api-сервис)
+## Запуск приложения (локально, без Docker)
 
 ```bash
 cd server
 uv run uvicorn app.main:app --reload
 ```
+
+## Запуск через Docker (прод)
+
+```bash
+cd server
+docker compose up -d --build        # поднимет db + api
+docker compose logs -f api          # логи приложения
+curl http://localhost:8000/health   # {"status":"ok"}
+```
+
+Миграции применяются автоматически при старте контейнера `api`.

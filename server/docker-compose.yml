@@ -1,5 +1,4 @@
 # Postgres + backend. Все компоненты — сервисами на одном сервере.
-# Сервис `api` добавится в фазе 6 (Docker), когда появится Dockerfile.
 services:
   db:
     image: postgres:16
@@ -20,6 +19,22 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  api:
+    build: .
+    container_name: mda_api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://mda:mda@db:5432/mda
+      TZ: Europe/Moscow
+      SESSION_TTL_DAYS: "7"
+      SEED_OPERATOR_LOGIN: operator
+      SEED_OPERATOR_PASSWORD: changeme
+    ports:
+      - "8000:8000"
 
 volumes:
   mda_pgdata:
