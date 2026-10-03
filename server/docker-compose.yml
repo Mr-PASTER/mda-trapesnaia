@@ -1,0 +1,25 @@
+# Postgres + backend. Все компоненты — сервисами на одном сервере.
+# Сервис `api` добавится в фазе 6 (Docker), когда появится Dockerfile.
+services:
+  db:
+    image: postgres:16
+    container_name: mda_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mda
+      POSTGRES_PASSWORD: mda
+      POSTGRES_DB: mda
+      TZ: Europe/Moscow
+    ports:
+      - "5432:5432"
+    volumes:
+      - mda_pgdata:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mda -d mda"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mda_pgdata:
