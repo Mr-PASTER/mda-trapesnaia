@@ -2,37 +2,66 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+  Монохромная палитра: тёплый нейтральный ряд (hue ≈ 40°) + единственный
+  жёлто-оранжевый акцент. Слои идут от глубокого холста к поднятой поверхности,
+  чтобы главные участки читались объёмом, а не одинаковым пластом.
+*/
 :root {
-  --paper: #f4f4f2;
+  /* слои: холст → хром → утопленный блок → поверхность */
+  --paper: #eae5db;
+  --chrome: #f2eee6;
+  --sunken: #f4f0e8;
   --surface: #ffffff;
-  --ink: #1b1b19;
-  --muted: #6b6b67;
+
+  /* текст */
+  --ink: #232019;
+  --muted: #6e6a60;
+
+  /* границы */
+  --border: #ded7c8;
+  --border-strong: #cbc2b0;
+
+  /* акцент и состояния */
   --accent: #c9821f;
-  --lock: #9a9a95;
-  --border: #e1e1de;
+  --lock: #9c968a;
   --on-accent: #17130b;
+
+  --card-shadow: 0 1px 2px rgb(66 54 30 / 0.07), 0 2px 6px -2px rgb(66 54 30 / 0.05);
 }
 
 .dark {
-  --paper: #131313;
-  --surface: #1c1c1b;
-  --ink: #ececea;
-  --muted: #9a9a95;
+  --paper: #121210;
+  --chrome: #1a1a18;
+  --sunken: #1e1d1a;
+  --surface: #24231f;
+
+  --ink: #edebe4;
+  --muted: #9c978b;
+
+  --border: #33322c;
+  --border-strong: #46443c;
+
   --accent: #dda24a;
-  --lock: #8c8c87;
-  --border: #2b2b29;
+  --lock: #807b70;
   --on-accent: #17130b;
+
+  --card-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
 }
 
 @theme inline {
   --color-paper: var(--paper);
+  --color-chrome: var(--chrome);
+  --color-sunken: var(--sunken);
   --color-surface: var(--surface);
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-lock: var(--lock);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-on-accent: var(--on-accent);
+  --shadow-card: var(--card-shadow);
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 

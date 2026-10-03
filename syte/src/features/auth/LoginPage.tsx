@@ -36,7 +36,7 @@ export function LoginPage() {
       <Card className="w-full max-w-sm">
         <h1 className="mb-4 text-xl font-semibold">Трапезная МДА</h1>
         {expired && (
-          <p className="mb-3 rounded-lg bg-paper px-3 py-2 text-xs text-muted">
+          <p className="mb-3 rounded-lg bg-sunken px-3 py-2 text-xs text-muted">
             Сессия истекла — войдите заново
           </p>
         )}

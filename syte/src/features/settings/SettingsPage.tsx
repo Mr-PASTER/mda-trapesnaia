@@ -35,7 +35,7 @@ export function SettingsPage({ target, readOnly = false }: { target: Target; rea
         )}
       </header>
       {readOnly ? (
-        <p className="rounded-2xl border border-border bg-surface p-4 text-sm text-muted">
+        <p className="rounded-2xl border border-border bg-surface p-4 text-sm text-muted shadow-card">
           Просмотр: оператор не редактирует питание питающегося.
         </p>
       ) : (

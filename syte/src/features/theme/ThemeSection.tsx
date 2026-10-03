@@ -17,7 +17,7 @@ export function ThemeSection() {
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-surface p-4">
+    <section className="rounded-2xl border border-border bg-surface p-4 shadow-card">
       <h2 className="mb-3 text-base font-semibold">Тема оформления</h2>
       <div className="flex flex-wrap gap-2">
         {OPTIONS.map((option) => (

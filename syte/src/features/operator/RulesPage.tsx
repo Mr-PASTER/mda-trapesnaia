@@ -219,7 +219,7 @@ function RuleModal({
 
         <div className="flex flex-col gap-1 text-sm">
           <span>Что выключаем</span>
-          <div className="rounded-xl border border-border p-2">
+          <div className="rounded-xl border border-border-strong bg-sunken p-2">
             {MEAL_ORDER.map((meal) => (
               <label key={meal} className="flex min-h-11 items-center gap-2 text-sm">
                 <input
@@ -237,7 +237,7 @@ function RuleModal({
         {kind === "recurring" ? (
           <div className="flex flex-col gap-1 text-sm">
             <span>Дни недели</span>
-            <div className="grid grid-cols-4 gap-1 rounded-xl border border-border p-2">
+            <div className="grid grid-cols-4 gap-1 rounded-xl border border-border-strong bg-sunken p-2">
               {WEEKDAYS.map((label, index) => (
                 <label key={label} className="flex min-h-11 items-center gap-2 text-sm">
                   <input
@@ -267,7 +267,7 @@ function RuleModal({
                     key={date}
                     type="button"
                     onClick={() => setDates((prev) => prev.filter((item) => item !== date))}
-                    className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-border px-3 text-sm text-ink hover:bg-paper"
+                    className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-border px-3 text-sm text-ink hover:bg-sunken"
                   >
                     {formatDate(date)}
                     <span aria-hidden="true" className="text-muted">
@@ -283,7 +283,7 @@ function RuleModal({
         <div className="flex flex-col gap-1 text-sm">
           <span>Залы</span>
           {halls ? (
-            <div className="rounded-xl border border-border p-2">
+            <div className="rounded-xl border border-border-strong bg-sunken p-2">
               {halls.map((hall) => (
                 <label key={hall.id} className="flex min-h-11 items-center gap-2 text-sm">
                   <input

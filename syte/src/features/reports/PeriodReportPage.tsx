@@ -46,7 +46,7 @@ export function PeriodReportPage() {
         <button
           type="button"
           onClick={handleExport}
-          className="inline-flex min-h-11 items-center rounded-xl border border-border px-4 text-sm hover:bg-surface"
+          className="inline-flex min-h-11 items-center rounded-xl border border-border px-4 text-sm hover:bg-sunken"
         >
           Скачать Excel
         </button>

@@ -46,7 +46,7 @@ export function DefaultsForm({ target }: { target: Target }) {
   const segment = "min-h-11 rounded-xl px-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
   return (
-    <section className="rounded-2xl border border-border bg-surface p-4">
+    <section className="rounded-2xl border border-border bg-surface p-4 shadow-card">
       <h2 className="mb-3 text-base font-semibold">Мои приёмы по умолчанию</h2>
 
       <p className="mb-2 text-sm text-muted">Тип питания по умолчанию</p>
@@ -58,7 +58,7 @@ export function DefaultsForm({ target }: { target: Target }) {
             onClick={() => setMealTypeId(t.id)}
             aria-pressed={mealTypeId === t.id}
             className={`${segment} ${
-              mealTypeId === t.id ? "bg-accent text-on-accent" : "border border-border text-ink hover:bg-paper"
+              mealTypeId === t.id ? "bg-accent text-on-accent" : "border border-border text-ink hover:bg-sunken"
             }`}
           >
             {t.name}
@@ -75,7 +75,7 @@ export function DefaultsForm({ target }: { target: Target }) {
                 type="button"
                 onClick={() => setMeals((m) => ({ ...m, [kind]: true }))}
                 className={`${segment} ${
-                  meals[kind] ? "bg-accent text-on-accent" : "border border-border text-ink hover:bg-paper"
+                  meals[kind] ? "bg-accent text-on-accent" : "border border-border text-ink hover:bg-sunken"
                 }`}
               >
                 Идёт
@@ -84,7 +84,7 @@ export function DefaultsForm({ target }: { target: Target }) {
                 type="button"
                 onClick={() => setMeals((m) => ({ ...m, [kind]: false }))}
                 className={`${segment} ${
-                  !meals[kind] ? "bg-ink text-paper" : "border border-border text-ink hover:bg-paper"
+                  !meals[kind] ? "bg-ink text-paper" : "border border-border text-ink hover:bg-sunken"
                 }`}
               >
                 Не идёт

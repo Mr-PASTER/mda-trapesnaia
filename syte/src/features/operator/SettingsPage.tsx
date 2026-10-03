@@ -49,7 +49,7 @@ export function SettingsPage() {
       <h1 className="mb-4 text-xl font-semibold">Настройки</h1>
       {isLoading && <Spinner />}
       {data && (
-        <div className="flex flex-col gap-4">
+        <section className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 shadow-card">
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-muted">Горизонт генерации, дней</span>
             <Input
@@ -82,7 +82,7 @@ export function SettingsPage() {
           <p className="text-sm text-muted">
             Правка закрывается за {deadlineOffsetDays} дней до даты в {hour || "—"}:00
           </p>
-        </div>
+        </section>
       )}
     </div>
   );

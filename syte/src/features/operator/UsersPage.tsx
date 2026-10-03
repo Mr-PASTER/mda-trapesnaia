@@ -79,7 +79,7 @@ function HallCheckboxes({
 }) {
   if (!halls) return <Spinner />;
   return (
-    <div className="rounded-xl border border-border p-2">
+    <div className="rounded-xl border border-border-strong bg-sunken p-2">
       {halls.map((hall) => (
         <label key={hall.id} className="flex min-h-11 items-center gap-2 text-sm">
           <input

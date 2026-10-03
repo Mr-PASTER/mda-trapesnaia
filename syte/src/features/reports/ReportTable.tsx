@@ -12,7 +12,7 @@ export type ReportHallRow = {
 };
 
 const cell = "border-b border-border px-3 py-2 text-right tabular-nums";
-const head = "border-b border-border bg-paper px-3 py-2 text-center text-xs font-medium text-muted";
+const head = "border-b border-border-strong bg-sunken px-3 py-2 text-center text-xs font-medium text-muted";
 
 export function ReportTable({
   rows,
@@ -28,7 +28,7 @@ export function ReportTable({
   const types = first?.by_type ?? [];
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
+    <div className="overflow-x-auto rounded-2xl border border-border bg-surface shadow-card">
       <table className="min-w-max border-collapse text-sm">
         <thead>
           <tr>

@@ -25,10 +25,10 @@ export function DayCard({
 
   const frame =
     status === "absent"
-      ? "border-accent/60 text-muted"
+      ? "border-dashed border-accent/60 text-muted"
       : status === "locked"
-        ? "border-border bg-surface/70"
-        : "border-border bg-surface hover:border-accent/60";
+        ? "border-border bg-sunken"
+        : "border-border bg-surface shadow-card hover:border-accent/60";
 
   return (
     <button

@@ -60,7 +60,7 @@ export function PeoplePage() {
             <button
               type="button"
               onClick={() => navigate(`/people/${person.id}`)}
-              className="flex min-h-12 w-full flex-col items-start rounded-2xl border border-border bg-surface px-4 py-3 text-left hover:border-accent/60"
+              className="flex min-h-12 w-full flex-col items-start rounded-2xl border border-border bg-surface px-4 py-3 text-left shadow-card hover:border-accent/60"
             >
               <span className="text-sm font-medium">{person.full_name}</span>
               <span className="text-xs text-muted">

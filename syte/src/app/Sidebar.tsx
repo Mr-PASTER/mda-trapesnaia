@@ -63,7 +63,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`flex shrink-0 flex-col border-r border-border bg-surface transition-all ${
+      className={`flex shrink-0 flex-col border-r border-border bg-chrome transition-all ${
         open ? "w-56" : "w-14"
       }`}
     >
