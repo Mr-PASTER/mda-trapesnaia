@@ -4,6 +4,7 @@ from app.models.day import Day, DayHallMeal
 from app.models.enums import MealKind, RuleKind, UserRole
 from app.models.hall import Hall
 from app.models.meal_type import MealType
+from app.models.request import Request, RequestItem
 from app.models.schedule_rule import (
     ScheduleRule,
     ScheduleRuleDate,
@@ -24,6 +25,8 @@ __all__ = [
     "Hall",
     "MealKind",
     "MealType",
+    "Request",
+    "RequestItem",
     "RuleKind",
     "ScheduleRule",
     "ScheduleRuleDate",
