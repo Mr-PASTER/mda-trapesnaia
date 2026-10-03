@@ -3,7 +3,7 @@ import { DefaultsForm } from "../defaults/DefaultsForm";
 import { ThemeSection } from "../theme/ThemeSection";
 import type { Target } from "../../lib/target";
 
-export function SettingsPage({ target }: { target: Target }) {
+export function SettingsPage({ target, readOnly = false }: { target: Target; readOnly?: boolean }) {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -27,7 +27,13 @@ export function SettingsPage({ target }: { target: Target }) {
           </div>
         )}
       </header>
-      <DefaultsForm target={target} />
+      {readOnly ? (
+        <p className="rounded-2xl border border-border bg-surface p-4 text-sm text-muted">
+          Просмотр: оператор не редактирует питание питающегося.
+        </p>
+      ) : (
+        <DefaultsForm target={target} />
+      )}
       <ThemeSection />
     </div>
   );

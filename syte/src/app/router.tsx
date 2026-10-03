@@ -27,7 +27,7 @@ export const router = createBrowserRouter([
           { path: "/menu", element: <MenuPage target={{ mode: "self" }} /> },
           { path: "/settings", element: <SettingsPage target={{ mode: "self" }} /> },
           {
-            element: <RequireRole roles={["admin"]} />,
+            element: <RequireRole roles={["admin", "operator"]} />,
             children: [
               { path: "/people", element: <PeoplePage /> },
               { path: "/people/:userId", element: <PersonMenuPage /> },
@@ -35,7 +35,7 @@ export const router = createBrowserRouter([
             ],
           },
           {
-            element: <RequireRole roles={["accountant"]} />,
+            element: <RequireRole roles={["accountant", "operator"]} />,
             children: [
               { path: "/reports/daily", element: <DailyReportPage /> },
               { path: "/reports/period", element: <PeriodReportPage /> },

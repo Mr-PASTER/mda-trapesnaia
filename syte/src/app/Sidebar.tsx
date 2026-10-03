@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from "react-router";
 import { logout, useCurrentUser } from "../api/auth";
 import { queryClient } from "./queryClient";
 import { readLocal, writeLocal } from "../lib/storage";
+import { Icon } from "../components/ui/Icon";
 
 type Item = { to: string; label: string; icon: string };
 
@@ -10,25 +11,30 @@ const SIDEBAR_KEY = "mda.sidebar";
 
 const NAV: Record<string, Item[]> = {
   eater: [
-    { to: "/menu", label: "Моё меню", icon: "🍽" },
-    { to: "/settings", label: "Настройки", icon: "⚙" },
+    { to: "/menu", label: "Моё меню", icon: "menu" },
+    { to: "/settings", label: "Настройки", icon: "tune" },
   ],
   admin: [
-    { to: "/people", label: "Питающиеся", icon: "👤" },
-    { to: "/settings", label: "Настройки", icon: "⚙" },
+    { to: "/people", label: "Питающиеся", icon: "users" },
+    { to: "/settings", label: "Настройки", icon: "tune" },
   ],
+  // Оператор имеет доступ ко всем панелям.
   operator: [
-    { to: "/operator/users", label: "Пользователи", icon: "👤" },
-    { to: "/operator/halls", label: "Залы", icon: "🏛" },
-    { to: "/operator/meal-types", label: "Типы питания", icon: "🍲" },
-    { to: "/operator/rules", label: "Правила", icon: "📜" },
-    { to: "/operator/settings", label: "Настройки", icon: "⚙" },
-    { to: "/operator/logs", label: "Логи", icon: "📈" },
-    { to: "/operator/calendar", label: "Календарь", icon: "📅" },
+    { to: "/operator/users", label: "Пользователи", icon: "user" },
+    { to: "/operator/halls", label: "Залы", icon: "hall" },
+    { to: "/operator/meal-types", label: "Типы питания", icon: "bowl" },
+    { to: "/operator/rules", label: "Правила", icon: "rules" },
+    { to: "/operator/settings", label: "Настройки системы", icon: "tune" },
+    { to: "/operator/logs", label: "Логи", icon: "logs" },
+    { to: "/operator/calendar", label: "Календарь", icon: "calendar" },
+    { to: "/people", label: "Питающиеся", icon: "users" },
+    { to: "/reports/daily", label: "Отчёт за день", icon: "report" },
+    { to: "/reports/period", label: "Отчёт за период", icon: "chart" },
+    { to: "/menu", label: "Моё меню", icon: "menu" },
   ],
   accountant: [
-    { to: "/reports/daily", label: "Отчёт за день", icon: "📄" },
-    { to: "/reports/period", label: "Отчёт за период", icon: "📊" },
+    { to: "/reports/daily", label: "Отчёт за день", icon: "report" },
+    { to: "/reports/period", label: "Отчёт за период", icon: "chart" },
   ],
 };
 
@@ -78,9 +84,7 @@ export function Sidebar() {
               } ${isActive ? "bg-accent text-on-accent" : "text-ink hover:bg-paper"}`
             }
           >
-            <span className="text-lg leading-none" aria-hidden="true">
-              {i.icon}
-            </span>
+            <Icon name={i.icon} />
             {open && <span className="truncate">{i.label}</span>}
           </NavLink>
         ))}
@@ -92,9 +96,7 @@ export function Sidebar() {
           open ? "" : "justify-center"
         }`}
       >
-        <span className="text-lg leading-none" aria-hidden="true">
-          ⎋
-        </span>
+        <Icon name="logout" />
         {open && <span>Выйти</span>}
       </button>
     </aside>

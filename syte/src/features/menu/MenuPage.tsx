@@ -9,7 +9,7 @@ import { DayEditModal } from "./DayEditModal";
 import { useMenuDays, useSaveMenuDay, type Target } from "./useMenuData";
 import type { DayState } from "../../api/me";
 
-export function MenuPage({ target }: { target: Target }) {
+export function MenuPage({ target, readOnly = false }: { target: Target; readOnly?: boolean }) {
   const navigate = useNavigate();
   const from = todayIso();
   const to = addDays(from, 30);
@@ -22,6 +22,7 @@ export function MenuPage({ target }: { target: Target }) {
     <div className="mx-auto max-w-5xl p-4">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">{target.mode === "self" ? "Моё меню" : "Меню питающегося"}</h1>
+        {readOnly && <span className="text-xs text-muted">Только просмотр</span>}
         {target.mode === "admin" && (
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => navigate("/people")} className="min-h-11 rounded-xl border border-border px-3 text-sm">
@@ -42,9 +43,11 @@ export function MenuPage({ target }: { target: Target }) {
       {days && days.length === 0 && (
         <EmptyState title="Календарь ещё не сформирован" hint="Дни появятся после генерации расписания" />
       )}
-      {days && days.length > 0 && <DayGrid days={days} mealTypes={mealTypes} onOpen={setOpened} />}
+      {days && days.length > 0 && (
+        <DayGrid days={days} mealTypes={mealTypes} onOpen={readOnly ? () => {} : setOpened} />
+      )}
 
-      {opened && (
+      {opened && !readOnly && (
         <DayEditModal
           day={opened}
           mealTypes={mealTypes}
