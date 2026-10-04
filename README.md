@@ -13,3 +13,4 @@ docker compose up -d --build
 - приложение — http://localhost:8080
 - API (Swagger) — http://localhost:8000/docs
 - первого оператора создать скриптом: `docker compose exec api python -m app.create_operator --login <логин>`
+- Нужно заменить секрет из .env.example на любые символы
