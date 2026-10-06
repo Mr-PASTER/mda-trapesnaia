@@ -6,7 +6,7 @@ class Settings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
-    database_url: str = "postgresql+asyncpg://mda:mda@localhost:5432/mda"
+    database_url: str = "postgresql+asyncpg://mda:mda@127.0.0.1:5432/mda"
     timezone: str = "Europe/Moscow"
     session_ttl_days: int = 7
 
@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     session_cookie_secure: bool = False
     session_cookie_samesite: str = "lax"
     session_cookie_path: str = "/"
+
+    docs_enabled: bool = True
 
     argon2_time_cost: int = 3
     argon2_memory_cost: int = 65536

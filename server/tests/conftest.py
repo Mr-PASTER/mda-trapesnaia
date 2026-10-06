@@ -12,7 +12,9 @@ from app.main import app
 
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL",
-    "postgresql+asyncpg://mda:mda@localhost:5432/mda_test",
+    # 127.0.0.1, а не localhost: на Windows localhost сначала резолвится в ::1,
+    # и каждое подключение теряет ~2 с. Порт БД опубликован только на IPv4-loopback.
+    "postgresql+asyncpg://mda:mda@127.0.0.1:5432/mda_test",
 )
 
 engine = create_async_engine(TEST_DATABASE_URL, pool_pre_ping=True, poolclass=NullPool)

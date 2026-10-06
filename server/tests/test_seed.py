@@ -1,7 +1,7 @@
 from sqlalchemy import select
 
 from app.models import AppSettings, MealType, User, UserRole
-from app.seed import seed
+from app.seed import ensure_reference_data, seed
 
 
 async def test_seed_is_idempotent(db_session):
@@ -38,3 +38,17 @@ async def test_seed_backfills_icons_for_existing_types(db_session):
         "Рыба": "fish",
         "Свой": None,
     }
+
+
+async def test_ensure_reference_data_creates_no_operator(db_session):
+    # Справочные данные заливаются и без оператора: оператор — только явным шагом.
+    await ensure_reference_data(db_session)
+
+    assert await db_session.get(AppSettings, 1) is not None
+    names = (await db_session.execute(select(MealType.name))).scalars().all()
+    assert sorted(names) == ["Мясо", "Пост", "Рыба"]
+
+    operators = (
+        await db_session.execute(select(User).where(User.role == UserRole.operator))
+    ).scalars().all()
+    assert operators == []

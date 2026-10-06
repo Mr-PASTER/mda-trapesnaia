@@ -1,24 +1,39 @@
-# Postgres + backend. Все компоненты — сервисами на одном сервере.
+# Postgres + backend + frontend на одном сервере.
+#
+# Наружу опубликован только frontend (порт 80 внутри образа).
+# `api` доступен исключительно внутри сети compose (frontend → api).
+# `db` доступна внутри сети и дополнительно на loopback хоста — для локальных
+# тестов и psql; снаружи порт закрыт.
+#
+# Настройки читаются из `server/.env` (см. `.env.example`); значения ниже —
+# безопасные значения по умолчанию для локальной разработки.
 services:
   db:
     image: postgres:16
     container_name: mda_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: mda
-      POSTGRES_PASSWORD: mda
-      POSTGRES_DB: mda
-      TZ: Europe/Moscow
+      POSTGRES_USER: ${POSTGRES_USER:-mda}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mda}
+      POSTGRES_DB: ${POSTGRES_DB:-mda}
+      TZ: ${TZ:-Europe/Moscow}
+    # Только loopback: наружу порт не смотрит, но локальные тесты и psql
+    # с хоста работают. Внутри сети compose БД всё равно доступна как db:5432.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - mda_pgdata:/var/lib/postgresql/data
       - ./docker/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mda -d mda"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mda} -d ${POSTGRES_DB:-mda}"]
       interval: 5s
       timeout: 5s
       retries: 10
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   api:
     build: .
@@ -28,13 +43,28 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+asyncpg://mda:mda@db:5432/mda
-      TZ: Europe/Moscow
-      SESSION_TTL_DAYS: "7"
-      SEED_OPERATOR_LOGIN: operator
-      SEED_OPERATOR_PASSWORD: changeme
-    ports:
-      - "8000:8000"
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-mda}:${POSTGRES_PASSWORD:-mda}@db:5432/${POSTGRES_DB:-mda}
+      # TZ — часовой пояс процессов; TIMEZONE — тот же пояс для планировщика задач.
+      TZ: ${TZ:-Europe/Moscow}
+      TIMEZONE: ${TIMEZONE:-Europe/Moscow}
+      SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-7}
+      # true — обязательно, когда приложение отдаётся по HTTPS.
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      # false — закрывает /docs, /redoc и /openapi.json.
+      DOCS_ENABLED: ${DOCS_ENABLED:-true}
+      # Оператор создаётся при первом старте, только если заданы ОБА значения.
+      SEED_OPERATOR_LOGIN: ${SEED_OPERATOR_LOGIN:-}
+      SEED_OPERATOR_PASSWORD: ${SEED_OPERATOR_PASSWORD:-}
+    # Доступно только frontend'у внутри сети compose (наружу порт не публикуется).
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    logging: *logging
 
   frontend:
     build:
@@ -42,9 +72,11 @@ services:
     container_name: mda_frontend
     restart: unless-stopped
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     ports:
-      - "8080:80"
+      - "${FRONTEND_PORT:-8080}:80"
+    logging: *logging
 
 volumes:
   mda_pgdata:
