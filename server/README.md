@@ -114,6 +114,7 @@ uv run python -m app.seed
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | `mda` | доступ к БД (пароль — URL-безопасный) |
+| `FRONTEND_BIND` | `0.0.0.0` | адрес прослушивания фронта (`127.0.0.1` за reverse-proxy) |
 | `FRONTEND_PORT` | `8080` | порт фронтенда на хосте |
 | `DB_PORT` | `5432` | порт БД на loopback (для локальных тестов и psql) |
 | `TZ` / `TIMEZONE` | `Europe/Moscow` | пояс процессов и планировщика |
@@ -166,9 +167,8 @@ docker compose up -d --build
 - **`SESSION_COOKIE_SECURE=true`** — иначе cookie сессии уйдёт по HTTP.
 - **`DOCS_ENABLED=false`** — чтобы `/docs`, `/redoc` и `/openapi.json` были недоступны.
 - **Секреты** — в `.env` на сервере (файл в `.gitignore`), а не в `docker-compose.yml`.
-- **Привязка к loopback.** Если перед `frontend` стоит reverse-proxy, привяжите порт к
-  localhost: в `docker-compose.yml` замените `"${FRONTEND_PORT:-8080}:80"` на
-  `"127.0.0.1:${FRONTEND_PORT:-8080}:80"`.
+- **Привязка к loopback.** Если перед `frontend` стоит reverse-proxy, поставьте в `.env`
+  `FRONTEND_BIND=127.0.0.1` — тогда порт будет доступен только с самого сервера.
 
 ⚠️ **Один экземпляр.** Миграции и обслуживание календаря выполняются при старте каждого
 процесса, а планировщик живёт внутри процесса uvicorn — не запускайте несколько реплик
