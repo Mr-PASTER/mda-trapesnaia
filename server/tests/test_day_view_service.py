@@ -1,9 +1,16 @@
 import datetime as dt
+from zoneinfo import ZoneInfo
 
 from app.models import (
     Day, DayHallMeal, Hall, MealKind, MealType, User, UserHall, UserMealDefault, UserRole,
 )
 from app.services import day_view
+
+TZ = ZoneInfo("Europe/Moscow")
+# Дефолт AppSettings: дедлайн = (дата - 2 дня) в 13:00.
+DAY = dt.date(2026, 10, 10)
+# "Сейчас" задаётся явно (get_day_state принимает now) — тест не зависит от календаря.
+BEFORE_DEADLINE = dt.datetime(2026, 10, 8, 12, 0, tzinfo=TZ)
 
 
 async def _setup(db_session):
@@ -14,7 +21,7 @@ async def _setup(db_session):
     await db_session.flush()
     db_session.add(UserHall(user_id=user.id, hall_id=hall.id))
     user.default_meal_type_id = mt.id
-    day = Day(date=dt.date(2026, 10, 10))
+    day = Day(date=DAY)
     db_session.add(day)
     await db_session.flush()
     for mk in MealKind:
@@ -30,7 +37,9 @@ async def _setup(db_session):
 
 async def test_defaults_when_no_request(db_session):
     hall, mt, user = await _setup(db_session)
-    state = await day_view.get_day_state(db_session, user=user, day_date=dt.date(2026, 10, 10))
+    state = await day_view.get_day_state(
+        db_session, user=user, day_date=DAY, now=BEFORE_DEADLINE
+    )
     assert state.available is True
     assert state.editable is True
     assert state.has_request is False
@@ -45,7 +54,10 @@ async def test_defaults_when_no_request(db_session):
 
 async def test_not_available_when_no_day_row(db_session):
     hall, mt, user = await _setup(db_session)
-    state = await day_view.get_day_state(db_session, user=user, day_date=dt.date(2026, 10, 11))
+    # Соседние сутки: строки дня в календаре нет.
+    state = await day_view.get_day_state(
+        db_session, user=user, day_date=DAY + dt.timedelta(days=1)
+    )
     assert state.available is False
     assert state.editable is False
     served = {i.meal_kind: i.is_served for i in state.items}

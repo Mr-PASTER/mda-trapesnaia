@@ -1,6 +1,5 @@
 import datetime as dt
 from datetime import time
-from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -11,8 +10,9 @@ from app.models import (
 from app.services import requests as svc
 from app.services import settings as settings_service
 
-TZ = ZoneInfo("Europe/Moscow")
-DAY = dt.date(2026, 10, 10)
+# save_day проверяет дедлайн по реальным часам, поэтому берём дату с запасом
+# от сегодня: при offset=2 (дефолт) день ещё открыт для правок.
+DAY = dt.date.today() + dt.timedelta(days=5)
 
 
 async def _setup(db_session, *, k=2, h=time(13, 0)):
@@ -49,7 +49,6 @@ async def _items(db_session, request_id):
 async def test_lazy_create_from_defaults(db_session):
     op, hall, mt, eater = await _setup(db_session)
     # до дедлайна
-    now = dt.datetime(2026, 10, 8, 14, 0, tzinfo=TZ)
     req = await svc.save_day(
         db_session, actor=eater, target=eater, day_date=DAY,
         meal_type_id=mt.id, meals={MealKind.lunch: True}, version=None,
@@ -64,8 +63,7 @@ async def test_lazy_create_from_defaults(db_session):
 
 async def test_eater_locked_after_deadline(db_session):
     op, hall, mt, eater = await _setup(db_session, k=2, h=time(13, 0))
-    # now после дедлайна (дедлайн 08.10 13:00) -> сымитируем через реальное "сейчас"
-    # используем day в прошлом, чтобы дедлайн точно прошёл
+    # Дата заведомо в прошлом — дедлайн для неё точно прошёл.
     past_day = dt.date(2020, 1, 1)
     with pytest.raises(svc.DayLocked):
         await svc.save_day(
@@ -123,8 +121,10 @@ async def test_admin_edit_after_deadline_sets_reserve(db_session):
 
 async def test_save_day_without_day_row_raises(db_session):
     op, hall, mt, eater = await _setup(db_session)
+    # Соседние сутки: день ещё открыт (не залочен), но строки в календаре нет.
+    no_row_day = DAY + dt.timedelta(days=1)
     with pytest.raises(svc.DayNotAvailable):
         await svc.save_day(
-            db_session, actor=eater, target=eater, day_date=dt.date(2026, 10, 12),
+            db_session, actor=eater, target=eater, day_date=no_row_day,
             meal_type_id=mt.id, meals={MealKind.lunch: True}, version=None,
         )
