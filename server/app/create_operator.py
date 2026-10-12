@@ -30,6 +30,21 @@ from app.models import User, UserRole
 
 MIN_PASSWORD_LENGTH = 4
 
+# Суррогатные символы (0xD800–0xDFFF) появляются, когда консоль — обычно на
+# Windows — отдаёт байты, которые Python не смог декодировать как UTF-8.
+# В БД такую строку записать нельзя (лимит столбца — UTF-8), поэтому отклоняем её
+# с понятным сообщением, а не падаем стеком вызовов на этапе INSERT/UPDATE.
+_ENCODING_HINT = (
+    "значение содержит символы, не представимые в UTF-8 — похоже на проблему "
+    'кодировки консоли. Передайте значение аргументом (--full-name "..."), '
+    "выполните `chcp 65001` или запустите команду через winpty"
+)
+
+
+def _reject_surrogates(value: str, field: str) -> None:
+    if any(0xD800 <= ord(ch) <= 0xDFFF for ch in value):
+        raise InvalidInput(f"{field}: {_ENCODING_HINT}")
+
 
 class InvalidInput(Exception):
     """Некорректные входные данные (логин/пароль)."""
@@ -57,6 +72,9 @@ async def ensure_operator(
 
     if not login:
         raise InvalidInput("Логин не может быть пустым.")
+    _reject_surrogates(login, "Логин")
+    _reject_surrogates(full_name, "ФИО")
+    _reject_surrogates(password or "", "Пароль")
     if len(password or "") < MIN_PASSWORD_LENGTH:
         raise InvalidInput(
             f"Пароль должен быть не короче {MIN_PASSWORD_LENGTH} символов."

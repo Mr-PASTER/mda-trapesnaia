@@ -59,3 +59,20 @@ async def test_reset_reactivates_inactive_operator(db_session):
 async def test_validation_rejects_bad_input(db_session, login, password):
     with pytest.raises(InvalidInput):
         await ensure_operator(db_session, login=login, full_name="A", password=password)
+
+
+async def test_rejects_surrogates_from_console(db_session):
+    # Windows-консоль может отдать байты, которые декодируются в суррогаты,
+    # и такая строка не записывается в БД — отклоняем с понятным сообщением.
+    broken_name = "Влад\udcd0имир"
+    with pytest.raises(InvalidInput):
+        await ensure_operator(
+            db_session, login="root", full_name=broken_name, password="secret"
+        )
+
+
+async def test_rejects_surrogate_in_password(db_session):
+    with pytest.raises(InvalidInput):
+        await ensure_operator(
+            db_session, login="root", full_name="A", password="sec\udcd0ret"
+        )

@@ -3,6 +3,10 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    PYTHONUTF8=1 \
+    PYTHONIOENCODING=utf-8:surrogateescape \
     PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app

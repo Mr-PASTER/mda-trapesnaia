@@ -153,6 +153,9 @@ cd server && docker compose up -d --build
 
 ## Диагностика
 
+- `create_operator` падает с `UnicodeEncodeError: ... surrogates not allowed` → проблема
+  кодировки консоли Windows, а не приложения: передайте ФИО и пароль аргументами
+  (`--full-name "..." --password '...'`) или выполните `chcp 65001` перед командой.
 - `api` не становится healthy → `docker compose logs api`. Чаще всего не поднялась `db`
   или неверный `DATABASE_URL`/`POSTGRES_PASSWORD`.
 - Reverse-proxy отдаёт 502 → контейнер `api` не healthy (см. выше).
