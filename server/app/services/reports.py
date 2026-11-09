@@ -1,4 +1,5 @@
 import uuid
+from dataclasses import dataclass
 from datetime import date, timedelta
 
 from sqlalchemy import select
@@ -154,3 +155,31 @@ async def build_period_report(
         date_from=start, date_to=end, halls=halls_out,
         grand_total=grand_total, grand_reserve_total=grand_reserve,
     )
+
+
+@dataclass
+class PeriodMatrix:
+    types: list[MealType]
+    dates: list[date]
+    halls: list[Hall]
+    counts: dict[date, dict[uuid.UUID, _Accumulator]]
+
+
+async def build_period_matrix(
+    db: AsyncSession, *, start: date, end: date, hall_id: uuid.UUID | None = None
+) -> PeriodMatrix:
+    types = await _active_types(db)
+    fallback_id = types[0].id if types else None
+    type_ids = [t.id for t in types]
+    dates = list(_iter_dates(start, end)) if end >= start else []
+    halls = await _halls(db, hall_id)
+
+    counts: dict[date, dict[uuid.UUID, _Accumulator]] = {}
+    for hall in halls:
+        eaters = await _eaters(db, hall.id)
+        for day_date in dates:
+            acc = _Accumulator(type_ids)
+            await _accumulate(db, eaters, [day_date], types, fallback_id, acc)
+            counts.setdefault(day_date, {})[hall.id] = acc
+
+    return PeriodMatrix(types=types, dates=dates, halls=halls, counts=counts)
