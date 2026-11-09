@@ -38,6 +38,37 @@ const ROLE_HINTS: Record<Role, string> = {
   operator: "залы не нужны",
 };
 
+// Совпадает с ограничением бэкенда (PasswordSet / OperatorUserCreate).
+const MIN_PASSWORD_LENGTH = 4;
+
+const FIELD_LABELS: Record<string, string> = {
+  login: "Логин",
+  password: "Пароль",
+  full_name: "ФИО",
+  role: "Роль",
+  hall_ids: "Залы",
+  default_meal_type_id: "Тип питания",
+};
+
+/** Достаёт из ответа 422 понятное человеку сообщение по первому полю. */
+function validationMessage(detail: unknown): string | null {
+  if (!Array.isArray(detail) || detail.length === 0) return null;
+  const first = detail[0] as {
+    loc?: unknown[];
+    type?: string;
+    msg?: string;
+    ctx?: { min_length?: number };
+  };
+  const field = Array.isArray(first.loc) ? String(first.loc[first.loc.length - 1]) : "";
+  const label = FIELD_LABELS[field] ?? "Данные";
+  if (first.type === "string_too_short") {
+    const min = first.ctx?.min_length;
+    return min ? `${label}: не короче ${min} символов` : `${label}: слишком короткое значение`;
+  }
+  if (first.type === "missing") return `${label}: обязательное поле`;
+  return `${label}: ${first.msg ?? "некорректное значение"}`;
+}
+
 function hallsValid(role: Role, count: number): boolean {
   if (role === "eater") return count === 1;
   if (role === "admin") return count >= 1;
@@ -63,6 +94,13 @@ function reportError(err: unknown, toast: (text: string) => void) {
     if (err.status === 400 && detail.includes("invalid_meal_type")) {
       toast("Выберите активный тип питания");
       return;
+    }
+    if (err.status === 422) {
+      const message = validationMessage(err.detail);
+      if (message) {
+        toast(message);
+        return;
+      }
     }
   }
   toast("Не удалось выполнить");
@@ -256,7 +294,12 @@ function CreateUserModal({
   const toggleHall = (id: string) =>
     setHallIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
-  const canSave = Boolean(login.trim() && password && fullName.trim() && hallsValid(role, hallIds.length));
+  const canSave = Boolean(
+    login.trim() &&
+      password.length >= MIN_PASSWORD_LENGTH &&
+      fullName.trim() &&
+      hallsValid(role, hallIds.length),
+  );
 
   return (
     <Modal title="Новый пользователь" onClose={onClose}>
@@ -266,7 +309,7 @@ function CreateUserModal({
           <Input value={login} onChange={(e) => setLogin(e.target.value)} />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          Пароль
+          Пароль <span className="text-muted">— не короче {MIN_PASSWORD_LENGTH} символов</span>
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -432,12 +475,13 @@ function PasswordModal({ user, onClose }: { user: OperatorUser; onClose: () => v
   const toast = useToast();
   const savePassword = useSetUserPassword();
   const [password, setPassword] = useState("");
+  const canSave = password.length >= MIN_PASSWORD_LENGTH;
 
   return (
     <Modal title={`Новый пароль «${user.login}»`} onClose={onClose}>
       <div className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm">
-          Пароль
+          Пароль <span className="text-muted">— не короче {MIN_PASSWORD_LENGTH} символов</span>
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </label>
         <div className="flex justify-end gap-2">
@@ -445,7 +489,7 @@ function PasswordModal({ user, onClose }: { user: OperatorUser; onClose: () => v
             Отмена
           </Button>
           <Button
-            disabled={!password || savePassword.isPending}
+            disabled={!canSave || savePassword.isPending}
             onClick={async () => {
               try {
                 await savePassword.mutateAsync({ id: user.id, password });
