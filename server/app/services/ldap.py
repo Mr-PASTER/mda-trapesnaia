@@ -26,12 +26,6 @@ def get_authenticator() -> LdapAuthenticator:
     return _authenticator
 
 
-def reset_cache() -> None:
-    """Сбрасывает кеш — нужен после смены окружения."""
-    global _authenticator
-    _authenticator = None
-
-
 async def authenticate(login: str, password: str) -> LdapIdentity | None:
     return await get_authenticator().authenticate(login, password)
 
