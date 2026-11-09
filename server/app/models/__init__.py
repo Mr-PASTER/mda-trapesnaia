@@ -5,6 +5,12 @@ from app.models.enums import MealKind, RuleKind, UserRole
 from app.models.hall import Hall
 from app.models.meal_type import MealType
 from app.models.request import Request, RequestItem
+from app.models.report_template import (
+    ReportGroup,
+    ReportGroupHall,
+    ReportTotal,
+    ReportTotalHall,
+)
 from app.models.schedule_rule import (
     ScheduleRule,
     ScheduleRuleDate,
@@ -27,6 +33,10 @@ __all__ = [
     "MealType",
     "Request",
     "RequestItem",
+    "ReportGroup",
+    "ReportGroupHall",
+    "ReportTotal",
+    "ReportTotalHall",
     "RuleKind",
     "ScheduleRule",
     "ScheduleRuleDate",
