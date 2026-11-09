@@ -6,9 +6,11 @@ import { downloadExport } from "./downloadExport";
 import { Spinner } from "../../components/ui/Spinner";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Input } from "../../components/ui/Input";
+import { readReservePref, writeReservePref } from "../../lib/reportPrefs";
 
 export function DailyReportPage() {
   const [date, setDate] = useState(todayIso());
+  const [reserve, setReserve] = useState(readReservePref);
   const [downloadError, setDownloadError] = useState(false);
   const { data, isLoading, isError } = useDailyReport(date);
 
@@ -22,7 +24,12 @@ export function DailyReportPage() {
 
   function handleExport() {
     setDownloadError(false);
-    downloadExport(dailyExportUrl(date)).catch(() => setDownloadError(true));
+    downloadExport(dailyExportUrl(date, undefined, reserve)).catch(() => setDownloadError(true));
+  }
+
+  function toggleReserve(next: boolean) {
+    setReserve(next);
+    writeReservePref(next);
   }
 
   return (
@@ -33,6 +40,11 @@ export function DailyReportPage() {
         <label className="text-sm">
           Дата
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </label>
+        <label className="flex min-h-11 items-center gap-2 text-sm">
+          <input type="checkbox" checked={reserve} onChange={(e) => toggleReserve(e.target.checked)}
+                 className="h-4 w-4 accent-accent" />
+          С резервом
         </label>
         <button
           type="button"

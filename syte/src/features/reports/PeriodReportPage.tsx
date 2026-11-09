@@ -6,6 +6,7 @@ import { downloadExport } from "./downloadExport";
 import { Spinner } from "../../components/ui/Spinner";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Input } from "../../components/ui/Input";
+import { readReservePref, writeReservePref } from "../../lib/reportPrefs";
 
 function firstDayOfMonth(): string {
   return `${todayIso().slice(0, 8)}01`;
@@ -14,6 +15,7 @@ function firstDayOfMonth(): string {
 export function PeriodReportPage() {
   const [from, setFrom] = useState(firstDayOfMonth());
   const [to, setTo] = useState(todayIso());
+  const [reserve, setReserve] = useState(readReservePref);
   const [downloadError, setDownloadError] = useState(false);
   const { data, isLoading, isError } = usePeriodReport(from, to);
 
@@ -27,7 +29,12 @@ export function PeriodReportPage() {
 
   function handleExport() {
     setDownloadError(false);
-    downloadExport(periodExportUrl(from, to)).catch(() => setDownloadError(true));
+    downloadExport(periodExportUrl(from, to, undefined, reserve)).catch(() => setDownloadError(true));
+  }
+
+  function toggleReserve(next: boolean) {
+    setReserve(next);
+    writeReservePref(next);
   }
 
   return (
@@ -42,6 +49,11 @@ export function PeriodReportPage() {
         <label className="text-sm">
           По
           <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+        </label>
+        <label className="flex min-h-11 items-center gap-2 text-sm">
+          <input type="checkbox" checked={reserve} onChange={(e) => toggleReserve(e.target.checked)}
+                 className="h-4 w-4 accent-accent" />
+          С резервом
         </label>
         <button
           type="button"

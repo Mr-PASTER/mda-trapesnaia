@@ -8,6 +8,7 @@ import { PeoplePage } from "../features/people/PeoplePage";
 import { PersonMenuPage, PersonSettingsPage } from "../features/people/PersonRoutes";
 import { DailyReportPage } from "../features/reports/DailyReportPage";
 import { PeriodReportPage } from "../features/reports/PeriodReportPage";
+import { ReportTemplatePage } from "../features/reportTemplate/ReportTemplatePage";
 import { HallsPage } from "../features/operator/HallsPage";
 import { MealTypesPage } from "../features/operator/MealTypesPage";
 import { UsersPage } from "../features/operator/UsersPage";
@@ -39,6 +40,7 @@ export const router = createBrowserRouter([
             children: [
               { path: "/reports/daily", element: <DailyReportPage /> },
               { path: "/reports/period", element: <PeriodReportPage /> },
+              { path: "/report-template", element: <ReportTemplatePage /> },
             ],
           },
           {

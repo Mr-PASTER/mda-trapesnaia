@@ -32,10 +32,10 @@ export function usePeriodReport(from: string, to: string, hallId?: string) {
   });
 }
 
-export function dailyExportUrl(date: string, hallId?: string): string {
-  return `/api/v1/accountant/report/export?date=${date}${hallQuery(hallId)}`;
+export function dailyExportUrl(date: string, hallId?: string, reserve = false): string {
+  return `/api/v1/accountant/report/export?date=${date}${hallQuery(hallId)}&reserve=${reserve}`;
 }
 
-export function periodExportUrl(from: string, to: string, hallId?: string): string {
-  return `/api/v1/accountant/report/period/export?from=${from}&to=${to}${hallQuery(hallId)}`;
+export function periodExportUrl(from: string, to: string, hallId?: string, reserve = false): string {
+  return `/api/v1/accountant/report/period/export?from=${from}&to=${to}${hallQuery(hallId)}&reserve=${reserve}`;
 }
