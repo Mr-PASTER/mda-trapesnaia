@@ -111,3 +111,57 @@ def test_period_layout_has_day_blocks():
     assert "Студенты" in labels
     assert "Мясо" in labels
     assert "ИТОГО" in labels
+
+
+def _is_blue(cell) -> bool:
+    return cell.fill.fill_type == "solid" and cell.fill.fgColor.rgb.endswith("DCE6F1")
+
+
+def test_daily_total_rows_are_highlighted():
+    template = ReportTemplate(
+        groups=[TemplateGroup(id=None, name="Студенты", show_subtotal=True,
+                              hall_ids=[H1, H2])],
+        totals=[TemplateTotal(id=None, name="ИТОГО", all_halls=True, hall_ids=[])],
+    )
+    ws = _sheet(report_excel.daily_report_to_xlsx(_data(), template, show_reserve=False))
+    labels = [ws.cell(row=r, column=1).value for r in range(1, ws.max_row + 1)]
+
+    sub = labels.index("Итого Студенты") + 1
+    total = labels.index("ИТОГО") + 1
+    hall = labels.index("Зал №1") + 1
+
+    # заливка идёт по всей ширине строки итога
+    assert _is_blue(ws.cell(row=sub, column=1))
+    assert _is_blue(ws.cell(row=sub, column=ws.max_column))
+    assert _is_blue(ws.cell(row=total, column=1))
+    assert _is_blue(ws.cell(row=total, column=ws.max_column))
+    # строка зала остаётся без заливки
+    assert ws.cell(row=hall, column=1).fill.fill_type is None
+
+
+def test_daily_flat_total_is_highlighted():
+    ws = _sheet(report_excel.daily_report_to_xlsx(_data(), ReportTemplate(), show_reserve=False))
+    labels = [ws.cell(row=r, column=1).value for r in range(1, ws.max_row + 1)]
+
+    total = labels.index("ИТОГО") + 1
+    assert _is_blue(ws.cell(row=total, column=1))
+
+
+def test_period_total_rows_are_highlighted():
+    data = _data()
+    data.dates = [dt.date(2026, 6, 10), dt.date(2026, 6, 11)]
+    data.counts[dt.date(2026, 6, 11)] = data.counts[dt.date(2026, 6, 10)]
+    template = ReportTemplate(
+        groups=[TemplateGroup(id=None, name="Студенты", show_subtotal=True, hall_ids=[H1, H2])],
+        totals=[TemplateTotal(id=None, name="ИТОГО", all_halls=True, hall_ids=[])],
+    )
+    ws = _sheet(report_excel.period_report_to_xlsx(data, template, show_reserve=False))
+    labels = [ws.cell(row=r, column=1).value for r in range(1, ws.max_row + 1)]
+
+    group = labels.index("Студенты") + 1
+    total = labels.index("ИТОГО") + 1
+    breakdown = labels.index("Мясо") + 1
+
+    assert _is_blue(ws.cell(row=group, column=1))
+    assert _is_blue(ws.cell(row=total, column=ws.max_column))
+    assert ws.cell(row=breakdown, column=1).fill.fill_type is None

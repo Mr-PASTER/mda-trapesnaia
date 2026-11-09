@@ -4,7 +4,7 @@ from typing import cast
 from uuid import UUID
 
 from openpyxl import Workbook
-from openpyxl.styles import Alignment, Border, Font, Side
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
@@ -30,6 +30,8 @@ _THIN = Side(style="thin")
 _BORDER = Border(left=_THIN, right=_THIN, top=_THIN, bottom=_THIN)
 _BOLD = Font(bold=True)
 _CENTER = Alignment(horizontal="center", vertical="center", wrap_text=True)
+# Светло-голубая заливка строк итогов (как «Accent1, светлый 80%» в Excel).
+_TOTAL_FILL = PatternFill("solid", fgColor="DCE6F1")
 
 
 def _fmt(value: date) -> str:
@@ -62,6 +64,12 @@ def _values(
     return per_type, total
 
 
+def _paint_total_row(ws: Worksheet, row: int, last_col: int) -> None:
+    """Заливает строку итога по всей ширине таблицы."""
+    for col in range(1, last_col + 1):
+        ws.cell(row=row, column=col).fill = _TOTAL_FILL
+
+
 def _put_total_row(
     ws: Worksheet,
     row: int,
@@ -70,6 +78,7 @@ def _put_total_row(
     hall_ids: list[UUID],
     type_ids: list[UUID],
     show_reserve: bool,
+    last_col: int,
 ) -> None:
     ws.cell(row=row, column=1, value=label).font = _BOLD
     col = 2
@@ -84,6 +93,7 @@ def _put_total_row(
             _, reserved = _values(counts, hall_ids, meal, type_ids, reserve=True)
             ws.cell(row=row, column=col, value=reserved)
             col += 1
+    _paint_total_row(ws, row, last_col)
 
 
 def _write_hall_row(
@@ -159,7 +169,7 @@ def daily_report_to_xlsx(
                 ws, row, data.hall_names[hall_id], counts, hall_id, type_ids, show_reserve
             )
             row += 1
-        _put_total_row(ws, row, "ИТОГО", counts, all_halls, type_ids, show_reserve)
+        _put_total_row(ws, row, "ИТОГО", counts, all_halls, type_ids, show_reserve, last_col)
         row += 1
     else:
         for group in groups:
@@ -172,13 +182,13 @@ def daily_report_to_xlsx(
             if group.show_subtotal:
                 _put_total_row(
                     ws, row, f"Итого {group.name}", counts, group.hall_ids,
-                    type_ids, show_reserve,
+                    type_ids, show_reserve, last_col,
                 )
                 row += 1
         for total in totals:
             hall_ids = all_halls if total.all_halls else total.hall_ids
             _put_total_row(
-                ws, row, total.name, counts, hall_ids, type_ids, show_reserve
+                ws, row, total.name, counts, hall_ids, type_ids, show_reserve, last_col
             )
             row += 1
 
@@ -248,14 +258,17 @@ def period_report_to_xlsx(
     if not groups and not totals:
         ws.cell(row=row, column=1, value="Все залы").font = _BOLD
         write_values(row, all_halls, type_ids)
+        _paint_total_row(ws, row, last_col)
         row += 1
         ws.cell(row=row, column=1, value="ИТОГО").font = _BOLD
         write_values(row, all_halls, type_ids)
+        _paint_total_row(ws, row, last_col)
         row += 1
     else:
         for group in groups:
             ws.cell(row=row, column=1, value=group.name).font = _BOLD
             write_values(row, group.hall_ids, type_ids)
+            _paint_total_row(ws, row, last_col)
             row += 1
             for type_id, name in data.types:
                 ws.cell(row=row, column=1, value=name)
@@ -265,6 +278,7 @@ def period_report_to_xlsx(
             hall_ids = all_halls if total.all_halls else total.hall_ids
             ws.cell(row=row, column=1, value=total.name).font = _BOLD
             write_values(row, hall_ids, type_ids)
+            _paint_total_row(ws, row, last_col)
             row += 1
 
     _finish(ws, row - 1, last_col)
