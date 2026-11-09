@@ -1,175 +1,292 @@
 import io
-from collections.abc import Callable
 from datetime import date
 from typing import cast
+from uuid import UUID
 
 from openpyxl import Workbook
-from openpyxl.styles import Alignment, Font
+from openpyxl.styles import Alignment, Border, Font, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
 from app.models import MealKind
-from app.schemas.report import (
-    DailyReportOut, HallPeriodReportOut, HallReportOut, PeriodReportOut,
-)
+from app.services.report_data import DayCounts, ReportData
+from app.services.report_template import ReportTemplate
 
-_MEAL_LABELS: dict[MealKind, str] = {
+MEAL_LABELS: dict[MealKind, str] = {
     MealKind.breakfast: "Завтрак",
     MealKind.lunch: "Обед",
     MealKind.snack: "Полдник",
     MealKind.dinner: "Ужин",
 }
 
-_TITLE_ROW = 1
-_HEADER_ROW = 2
-_SUB_HEADER_ROW = 3
-_FIRST_DATA_ROW = 4
+MEAL_SHORT: dict[MealKind, str] = {
+    MealKind.breakfast: "Звтр",
+    MealKind.lunch: "Обд",
+    MealKind.snack: "Плдн",
+    MealKind.dinner: "Ужн",
+}
+
+_THIN = Side(style="thin")
+_BORDER = Border(left=_THIN, right=_THIN, top=_THIN, bottom=_THIN)
+_BOLD = Font(bold=True)
+_CENTER = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
 
-def _fmt_date(value: date) -> str:
+def _fmt(value: date) -> str:
     return value.strftime("%d.%m.%Y")
 
 
-def _meal_groups(halls: list) -> list[tuple[MealKind, list[str]]]:
-    """Column groups are derived from the first hall, whose meals list mirrors
-    the active meal types and is identical in shape for every hall."""
-    if not halls:
-        return []
-    groups: list[tuple[MealKind, list[str]]] = []
-    for meal in halls[0].meals:
-        subcolumns = [t.name for t in meal.by_type]
-        subcolumns += [f"Рез. {t.name}" for t in meal.reserve_by_type]
-        if subcolumns:
-            groups.append((meal.meal_kind, subcolumns))
-    return groups
+def _weekday(value: date) -> str:
+    return ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"][value.weekday()]
 
 
-def _write_headers(ws: Worksheet, groups: list[tuple[MealKind, list[str]]]) -> dict:
-    bold = Font(bold=True)
-    center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+def _values(
+    counts: DayCounts,
+    hall_ids: list[UUID],
+    meal: MealKind,
+    type_ids: list[UUID],
+    reserve: bool,
+) -> tuple[list[int], int]:
+    """Сумма по залам без повторов: зал, указанный дважды, считается один раз."""
+    per_type = [0] * len(type_ids)
+    total = 0
+    for hall_id in dict.fromkeys(hall_ids):
+        per_hall = counts.get(hall_id)
+        if not per_hall:
+            continue
+        for index, type_id in enumerate(type_ids):
+            normal, reserved = per_hall.get(meal, {}).get(type_id, (0, 0))
+            value = reserved if reserve else normal
+            per_type[index] += value
+            total += value
+    return per_type, total
 
-    col = 1
-    ws.cell(row=_HEADER_ROW, column=col, value="Зал")
-    ws.merge_cells(start_row=_HEADER_ROW, start_column=col,
-                   end_row=_SUB_HEADER_ROW, end_column=col)
-    hall_col = col
-    col += 1
 
-    group_layout: list[tuple[MealKind, int, int]] = []
-    for meal_kind, subcolumns in groups:
-        start = col
-        for name in subcolumns:
-            ws.cell(row=_SUB_HEADER_ROW, column=col, value=name)
+def _put_total_row(
+    ws: Worksheet,
+    row: int,
+    label: str,
+    counts: DayCounts,
+    hall_ids: list[UUID],
+    type_ids: list[UUID],
+    show_reserve: bool,
+) -> None:
+    ws.cell(row=row, column=1, value=label).font = _BOLD
+    col = 2
+    for meal in MealKind:
+        per_type, total = _values(counts, hall_ids, meal, type_ids, reserve=False)
+        ws.cell(row=row, column=col, value=total)
+        col += 1
+        for value in per_type:
+            ws.cell(row=row, column=col, value=value)
             col += 1
-        end = col - 1
-        ws.cell(row=_HEADER_ROW, column=start, value=_MEAL_LABELS[meal_kind])
-        if end > start:
-            ws.merge_cells(start_row=_HEADER_ROW, start_column=start,
-                           end_row=_HEADER_ROW, end_column=end)
-        group_layout.append((meal_kind, start, end))
-
-    total_col = col
-    ws.cell(row=_HEADER_ROW, column=total_col, value="Итого")
-    ws.cell(row=_SUB_HEADER_ROW, column=total_col, value="Всего")
-    col += 1
-
-    reserve_col = col
-    ws.cell(row=_HEADER_ROW, column=reserve_col, value="Итого резерв")
-    ws.cell(row=_SUB_HEADER_ROW, column=reserve_col, value="Резерв")
-    col += 1
-
-    last_col = col - 1
-    for r in (_HEADER_ROW, _SUB_HEADER_ROW):
-        for c in range(1, last_col + 1):
-            cell = ws.cell(row=r, column=c)
-            cell.font = bold
-            cell.alignment = center
-
-    return {
-        "hall_col": hall_col,
-        "groups": group_layout,
-        "total_col": total_col,
-        "reserve_col": reserve_col,
-        "last_col": last_col,
-    }
+        if show_reserve:
+            _, reserved = _values(counts, hall_ids, meal, type_ids, reserve=True)
+            ws.cell(row=row, column=col, value=reserved)
+            col += 1
 
 
-def _write_workbook(
-    title: str,
-    halls: list[HallReportOut] | list[HallPeriodReportOut],
-    total_of: Callable,
-    reserve_of: Callable,
-    grand_total: int,
-    grand_reserve_total: int,
+def _write_hall_row(
+    ws: Worksheet,
+    row: int,
+    label: str,
+    counts: DayCounts,
+    hall_id: UUID,
+    type_ids: list[UUID],
+    show_reserve: bool,
+) -> None:
+    ws.cell(row=row, column=1, value=label)
+    col = 2
+    for meal in MealKind:
+        per_type, total = _values(counts, [hall_id], meal, type_ids, reserve=False)
+        ws.cell(row=row, column=col, value=total)
+        col += 1
+        for value in per_type:
+            ws.cell(row=row, column=col, value=value)
+            col += 1
+        if show_reserve:
+            _, reserved = _values(counts, [hall_id], meal, type_ids, reserve=True)
+            ws.cell(row=row, column=col, value=reserved)
+            col += 1
+
+
+def daily_report_to_xlsx(
+    data: ReportData, template: ReportTemplate, *, show_reserve: bool
 ) -> bytes:
     wb = Workbook()
     ws = cast(Worksheet, wb.active)
-    ws.title = "Отчёт"
+    ws.title = "Отчет 1д"
 
-    groups = _meal_groups(halls)
-    layout = _write_headers(ws, groups)
+    if not data.dates:
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        return buffer.getvalue()
 
-    ws.cell(row=_TITLE_ROW, column=1, value=title).font = Font(bold=True, size=13)
-    if layout["last_col"] > 1:
-        ws.merge_cells(start_row=_TITLE_ROW, start_column=1,
-                       end_row=_TITLE_ROW, end_column=layout["last_col"])
+    day = data.dates[0]
+    counts = data.counts.get(day, {})
+    type_ids = [tid for tid, _ in data.types]
+    block = 1 + len(type_ids) + (1 if show_reserve else 0)
+    last_col = 1 + block * len(MealKind)
 
-    row = _FIRST_DATA_ROW
-    for hall in halls:
-        meals_by_kind = {meal.meal_kind: meal for meal in hall.meals}
-        ws.cell(row=row, column=layout["hall_col"], value=hall.hall_name)
-        for meal_kind, start, _end in layout["groups"]:
-            meal = meals_by_kind.get(meal_kind)
-            if meal is None:
-                continue
-            values = [t.count for t in meal.by_type]
-            values += [t.count for t in meal.reserve_by_type]
-            for offset, value in enumerate(values):
-                ws.cell(row=row, column=start + offset, value=value)
-        ws.cell(row=row, column=layout["total_col"], value=total_of(hall))
-        ws.cell(row=row, column=layout["reserve_col"], value=reserve_of(hall))
+    ws.cell(
+        row=1, column=1,
+        value=f"Количество питающихся по залам за: {_fmt(day)}",
+    ).font = Font(bold=True, size=14)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=last_col)
+
+    ws.cell(row=3, column=1, value="Зал")
+    ws.merge_cells(start_row=3, start_column=1, end_row=4, end_column=1)
+    col = 2
+    for meal in MealKind:
+        start = col
+        headers = ["Итог"] + [name for _, name in data.types]
+        if show_reserve:
+            headers.append("Рез.")
+        for header in headers:
+            ws.cell(row=4, column=col, value=header)
+            col += 1
+        ws.cell(row=3, column=start, value=MEAL_LABELS[meal])
+        ws.merge_cells(start_row=3, start_column=start, end_row=3, end_column=col - 1)
+
+    row = 5
+    groups = template.groups or []
+    totals = template.totals or []
+    all_halls = list(data.hall_names.keys())
+
+    if not groups and not totals:
+        for hall_id in all_halls:
+            _write_hall_row(
+                ws, row, data.hall_names[hall_id], counts, hall_id, type_ids, show_reserve
+            )
+            row += 1
+        _put_total_row(ws, row, "ИТОГО", counts, all_halls, type_ids, show_reserve)
         row += 1
+    else:
+        for group in groups:
+            for hall_id in group.hall_ids:
+                _write_hall_row(
+                    ws, row, data.hall_names.get(hall_id, "Зал"), counts, hall_id,
+                    type_ids, show_reserve,
+                )
+                row += 1
+            if group.show_subtotal:
+                _put_total_row(
+                    ws, row, f"Итого {group.name}", counts, group.hall_ids,
+                    type_ids, show_reserve,
+                )
+                row += 1
+        for total in totals:
+            hall_ids = all_halls if total.all_halls else total.hall_ids
+            _put_total_row(
+                ws, row, total.name, counts, hall_ids, type_ids, show_reserve
+            )
+            row += 1
 
-    bold = Font(bold=True)
-    ws.cell(row=row, column=layout["hall_col"], value="ИТОГО").font = bold
-    ws.cell(row=row, column=layout["total_col"], value=grand_total).font = bold
-    ws.cell(row=row, column=layout["reserve_col"], value=grand_reserve_total).font = bold
-    last_row = row
-
-    for c in range(1, layout["last_col"] + 1):
-        widest = 0
-        for r in range(_HEADER_ROW, last_row + 1):
-            value = ws.cell(row=r, column=c).value
-            if value is not None:
-                widest = max(widest, len(str(value)))
-        ws.column_dimensions[get_column_letter(c)].width = min(max(widest + 2, 8), 40)
-
-    ws.freeze_panes = f"A{_FIRST_DATA_ROW}"
-
+    _finish(ws, row - 1, last_col)
     buffer = io.BytesIO()
     wb.save(buffer)
     return buffer.getvalue()
 
 
-def daily_report_to_xlsx(report: DailyReportOut) -> bytes:
-    return _write_workbook(
-        title=f"Отчёт за {_fmt_date(report.date)}",
-        halls=report.halls,
-        total_of=lambda hall: hall.day_total,
-        reserve_of=lambda hall: hall.day_reserve_total,
-        grand_total=report.grand_total,
-        grand_reserve_total=report.grand_reserve_total,
-    )
+def period_report_to_xlsx(
+    data: ReportData, template: ReportTemplate, *, show_reserve: bool
+) -> bytes:
+    wb = Workbook()
+    ws = cast(Worksheet, wb.active)
+    days = data.dates
+    ws.title = f"Отчет {len(days)}д"
+
+    if not days:
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        return buffer.getvalue()
+
+    type_ids = [tid for tid, _ in data.types]
+    per_day_cols = len(MealKind) * (2 if show_reserve else 1)
+    last_col = 1 + per_day_cols * len(days)
+
+    ws.cell(
+        row=1, column=1,
+        value=f"Количество питающихся за период: {_fmt(days[0])} – {_fmt(days[-1])}",
+    ).font = Font(bold=True, size=14)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=last_col)
+
+    ws.cell(row=3, column=1, value="Группа")
+    ws.merge_cells(start_row=3, start_column=1, end_row=4, end_column=1)
+    col = 2
+    for day in days:
+        start = col
+        for meal in MealKind:
+            ws.cell(row=4, column=col, value=MEAL_SHORT[meal])
+            col += 1
+            if show_reserve:
+                ws.cell(row=4, column=col, value=f"{MEAL_SHORT[meal]} рез.")
+                col += 1
+        ws.cell(row=3, column=start, value=f"{_weekday(day)} {_fmt(day)}")
+        ws.merge_cells(start_row=3, start_column=start, end_row=3, end_column=col - 1)
+
+    def write_values(row: int, hall_ids: list[UUID], type_subset: list[UUID]) -> None:
+        position = 2
+        for day in days:
+            counts = data.counts.get(day, {})
+            for meal in MealKind:
+                _, total = _values(counts, hall_ids, meal, type_subset, reserve=False)
+                ws.cell(row=row, column=position, value=total)
+                position += 1
+                if show_reserve:
+                    _, reserved = _values(
+                        counts, hall_ids, meal, type_subset, reserve=True
+                    )
+                    ws.cell(row=row, column=position, value=reserved)
+                    position += 1
+
+    row = 5
+    groups = template.groups or []
+    totals = template.totals or []
+    all_halls = list(data.hall_names.keys())
+
+    if not groups and not totals:
+        ws.cell(row=row, column=1, value="Все залы").font = _BOLD
+        write_values(row, all_halls, type_ids)
+        row += 1
+        ws.cell(row=row, column=1, value="ИТОГО").font = _BOLD
+        write_values(row, all_halls, type_ids)
+        row += 1
+    else:
+        for group in groups:
+            ws.cell(row=row, column=1, value=group.name).font = _BOLD
+            write_values(row, group.hall_ids, type_ids)
+            row += 1
+            for type_id, name in data.types:
+                ws.cell(row=row, column=1, value=name)
+                write_values(row, group.hall_ids, [type_id])
+                row += 1
+        for total in totals:
+            hall_ids = all_halls if total.all_halls else total.hall_ids
+            ws.cell(row=row, column=1, value=total.name).font = _BOLD
+            write_values(row, hall_ids, type_ids)
+            row += 1
+
+    _finish(ws, row - 1, last_col)
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    return buffer.getvalue()
 
 
-def period_report_to_xlsx(report: PeriodReportOut) -> bytes:
-    return _write_workbook(
-        title=(
-            f"Отчёт за период {_fmt_date(report.date_from)}–{_fmt_date(report.date_to)}"
-        ),
-        halls=report.halls,
-        total_of=lambda hall: hall.period_total,
-        reserve_of=lambda hall: hall.period_reserve_total,
-        grand_total=report.grand_total,
-        grand_reserve_total=report.grand_reserve_total,
-    )
+def _finish(ws: Worksheet, last_row: int, last_col: int) -> None:
+    for cells in ws.iter_rows(min_row=3, max_row=last_row, min_col=1, max_col=last_col):
+        for cell in cells:
+            cell.border = _BORDER
+            if cell.row <= 4:
+                cell.font = _BOLD
+                cell.alignment = _CENTER
+    for col in range(1, last_col + 1):
+        widest = 0
+        for row in range(3, last_row + 1):
+            value = ws.cell(row=row, column=col).value
+            if value is not None:
+                widest = max(widest, len(str(value)))
+        ws.column_dimensions[get_column_letter(col)].width = min(
+            max(widest + 2, 7), 30
+        )
+    ws.freeze_panes = "B5"
