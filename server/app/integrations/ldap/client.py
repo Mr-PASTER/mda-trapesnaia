@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 import ssl
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -159,6 +160,16 @@ def _describe_connection_error(connection: Connection) -> str:
     return details
 
 
+def _receive_timeout(seconds: float) -> int:
+    """Целые секунды для ldap3.
+
+    На POSIX ldap3 упаковывает ``receive_timeout`` в ``struct timeval`` через
+    ``struct.pack('LL', timeout, 0)`` — float там падает с ``struct.error``.
+    На Windows используется ``int(1000 * timeout)``, поэтому там ошибки нет.
+    """
+    return max(1, math.ceil(seconds))
+
+
 class _Ldap3Connection:
     """Адаптер ``ldap3.Connection`` под :class:`DirectoryConnection`."""
 
@@ -180,7 +191,7 @@ class _Ldap3Connection:
                 password=None,
                 version=settings.version,
                 read_only=True,
-                receive_timeout=settings.timeout,
+                receive_timeout=_receive_timeout(settings.timeout),
                 auto_bind=False,
                 raise_exceptions=False,
             )

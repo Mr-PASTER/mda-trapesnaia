@@ -201,8 +201,10 @@ def _print_settings(
         print("  Bind пароль: —")
     print(f"  ФИО атрибут: {settings.name_attr}")
     print(f"  ID атрибут:  {settings.id_attr}")
+    print(f"  Логин атрибут: {settings.login_attr}")
     print(f"  Login filter:{settings.login_filter}")
     print(f"  User filter: {settings.user_filter or '—'}")
+    print(f"  Sync filter: {settings.sync_filter or '—'}")
     print(f"  Таймаут:     {settings.timeout:g} с")
     if not endpoint.use_ssl and settings.tls == "none":
         print("  ВНИМАНИЕ:    TLS отключён (LDAP_TLS=none)")
