@@ -55,6 +55,25 @@ services:
       # Оператор создаётся при первом старте, только если заданы ОБА значения.
       SEED_OPERATOR_LOGIN: ${SEED_OPERATOR_LOGIN:-}
       SEED_OPERATOR_PASSWORD: ${SEED_OPERATOR_PASSWORD:-}
+      # LDAP: значения берутся из server/.env; при LDAP_ENABLED=false не используются.
+      LDAP_ENABLED: ${LDAP_ENABLED:-false}
+      LDAP_HOST: ${LDAP_HOST:-}
+      LDAP_VERSION: ${LDAP_VERSION:-3}
+      LDAP_BASE_DN: ${LDAP_BASE_DN:-}
+      LDAP_BIND_DN: ${LDAP_BIND_DN:-}
+      LDAP_BIND_PASSWORD: ${LDAP_BIND_PASSWORD:-}
+      LDAP_TLS: ${LDAP_TLS:-none}
+      LDAP_TLS_VERIFY: ${LDAP_TLS_VERIFY:-true}
+      LDAP_TLS_CA_CERT: ${LDAP_TLS_CA_CERT:-}
+      LDAP_LOGIN_FILTER: ${LDAP_LOGIN_FILTER:-(|(uid={login})(sAMAccountName={login}))}
+      LDAP_LOGIN_ATTR: ${LDAP_LOGIN_ATTR:-uid}
+      LDAP_NAME_ATTR: ${LDAP_NAME_ATTR:-cn}
+      LDAP_ID_ATTR: ${LDAP_ID_ATTR:-entryUUID}
+      LDAP_USER_FILTER: ${LDAP_USER_FILTER:-}
+      LDAP_SYNC_FILTER: ${LDAP_SYNC_FILTER:-}
+      LDAP_TIMEOUT: ${LDAP_TIMEOUT:-5}
+      LDAP_SYNC_ENABLED: ${LDAP_SYNC_ENABLED:-false}
+      LDAP_SYNC_HOUR: ${LDAP_SYNC_HOUR:-23}
     # Доступно только frontend'у внутри сети compose (наружу порт не публикуется).
     expose:
       - "8000"

@@ -52,6 +52,8 @@ nano .env
 | `POSTGRES_PASSWORD` | **Обязательно сменить.** Только URL-безопасные символы — пароль подставляется в строку подключения |
 | `POSTGRES_USER`, `POSTGRES_DB` | Можно оставить `mda` |
 | `SEED_OPERATOR_LOGIN`, `SEED_OPERATOR_PASSWORD` | **Задать** для первого оператора (пароль ≥ 8 символов). Оставить пустыми → создадите вручную на этапе 5 |
+| `LDAP_ENABLED`, `LDAP_HOST`, `LDAP_BASE_DN`, `LDAP_BIND_DN`, `LDAP_BIND_PASSWORD` | Только если нужен вход через каталог — см. «LDAP-аутентификация» ниже |
+| `LDAP_SYNC_ENABLED`, `LDAP_SYNC_FILTER` | `true` и фильтр импорта — чтобы ночью подтягивался список студентов |
 | `FRONTEND_BIND` | `127.0.0.1` — если перед фронтом стоит reverse-proxy (этап 6) |
 | `FRONTEND_PORT` | По умолчанию `8080`; менять не обязательно |
 | `TZ`, `TIMEZONE` | Часовой пояс сервера — влияет на дедлайны и ночное обслуживание |
@@ -142,6 +144,20 @@ cd server && docker compose up -d --build
 ```
 
 `.env` при обновлении не затрагивается. Миграции применятся автоматически при старте.
+
+## LDAP-аутентификация (необязательно)
+
+1. Заполнить `LDAP_*` в `server/.env`, оставить `LDAP_ENABLED=false`.
+2. `docker compose up -d` — миграция добавит столбцы, поведение не меняется.
+3. `docker compose exec api python -m app.integrations.ldap --service-only` —
+   проверить, что каталог и сервисная учётка доступны.
+4. Поставить `LDAP_ENABLED=true`, `docker compose up -d`, войти тестовым питающимся.
+5. Задать `LDAP_SYNC_FILTER` и `LDAP_SYNC_ENABLED=true`, `docker compose up -d`.
+   Первый прогон создаст весь список студентов.
+
+Откат: `LDAP_ENABLED=false` и `docker compose up -d` — без пересборки БД.
+
+Подробности и диагностика — `server/README.md`, раздел «LDAP-аутентификация».
 
 ## Ограничения
 

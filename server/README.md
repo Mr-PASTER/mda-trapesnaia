@@ -136,6 +136,41 @@ uv run python -m app.seed
 Эндпоинты: `GET|PUT /api/v1/report-template`, `GET /api/v1/catalog/halls`.
 Флаг резерва передаётся в экспорт как `?reserve=true`.
 
+## LDAP-аутентификация
+
+Питающиеся могут входить по логину и паролю каталога. Пароль **не хранится**:
+в момент входа выполняется `bind` в каталог. Локальные роли (`operator`, `admin`,
+`accountant`) LDAP не используют никогда.
+
+- `LDAP_ENABLED=false` — поведение полностью прежнее.
+- Новый человек из каталога создаётся как `eater` и получает **первый активный зал
+  по алфавиту**. Нет активных залов → `503 no_hall_available`.
+- Каталог недоступен → `503 ldap_unavailable`; локальный оператор входит как обычно.
+- Локальная учётка с тем же логином LDAP не перехватывает: приоритет у локальной.
+- Отключённого оператором человека синк обратно не включает.
+- Ночью в `LDAP_SYNC_HOUR:59` (по умолчанию 23:59) выполняется сверка: ФИО и логины
+  обновляются, пропавшие из каталога отключаются (`is_active=false`, не удаляются).
+- Если `LDAP_SYNC_FILTER` и `LDAP_USER_FILTER` пусты, синк отказывается работать:
+  импорт всего каталога по умолчанию недопустим.
+
+Проверка настроек без приложения:
+
+```bash
+cd server
+uv run python -m app.integrations.ldap --service-only   # транспорт + bind сервисной учётки
+uv run python -m app.integrations.ldap --login ivan     # плюс поиск и bind пользователя
+```
+
+В контейнере:
+
+```bash
+docker compose exec api python -m app.integrations.ldap --service-only
+```
+
+(в контейнере `.env` нет — настройки приходят переменными окружения из compose).
+
+Диагностика: `-v` включает DNS/TCP preflight и логи `ldap3`.
+
 ## Переменные окружения
 
 Скопировать `.env.example` → `.env` и при необходимости поправить. Compose читает этот
@@ -152,6 +187,8 @@ uv run python -m app.seed
 | `SESSION_COOKIE_SECURE` | `false` | `true` — обязательно при HTTPS |
 | `DOCS_ENABLED` | `true` | `false` — закрыть `/docs`, `/redoc`, `/openapi.json` |
 | `SEED_OPERATOR_LOGIN` / `SEED_OPERATOR_PASSWORD` | пусто | первый оператор (оба значения, пароль ≥ 8) |
+| `LDAP_ENABLED` | `false` | вход через каталог LDAP (см. раздел ниже) |
+| `LDAP_SYNC_ENABLED` / `LDAP_SYNC_FILTER` | `false` / пусто | ночной импорт списка питающихся из каталога |
 
 > Смена `POSTGRES_PASSWORD` на уже созданном томе не меняет пароль в БД — нужен новый
 > том или `ALTER USER` внутри контейнера.
