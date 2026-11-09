@@ -77,6 +77,8 @@ async def set_password(user_id: uuid.UUID, payload: PasswordSet,
         await users.set_password(db, actor_id=actor.id, user_id=user_id, password=payload.password)
     except LookupError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="user_not_found")
+    except users.PasswordNotAllowed:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="ldap_user_password")
     await db.commit()
 
 

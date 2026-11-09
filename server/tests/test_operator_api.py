@@ -1,7 +1,9 @@
+import uuid
+
 import pytest
 
 from app.core.security import hash_password
-from app.models import User, UserRole
+from app.models import AuthSource, User, UserRole
 
 FP = "dev-1"
 
@@ -81,3 +83,30 @@ async def test_non_operator_forbidden(client, db_session):
     h = await _login(client, "eater1", "p")
     r = await client.get("/api/v1/operator/halls", headers=h)
     assert r.status_code == 403
+
+
+async def test_password_change_is_rejected_for_ldap_user(client, operator_token, db_session):
+    h = await _login(client)
+
+    r = await client.post("/api/v1/operator/halls", json={"name": "Зал №1"}, headers=h)
+    hall_id = r.json()["id"]
+    r = await client.post("/api/v1/operator/users", headers=h, json={
+        "login": "ldapman", "password": "pass1234", "full_name": "Из каталога",
+        "role": "eater", "hall_ids": [hall_id],
+    })
+    assert r.status_code == 201
+    user_id = r.json()["id"]
+
+    # Переводим запись в LDAP-тип напрямую через БД: API такого не умеет.
+    user = await db_session.get(User, uuid.UUID(user_id))
+    user.auth_source = AuthSource.ldap
+    await db_session.commit()
+
+    resp = await client.put(
+        f"/api/v1/operator/users/{user_id}/password",
+        json={"password": "newpass1"},
+        headers=h,
+    )
+
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "ldap_user_password"
