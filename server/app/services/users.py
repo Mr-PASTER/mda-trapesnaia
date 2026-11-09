@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
-from app.models import Hall, MealType, User, UserRole
+from app.models import AuthSource, Hall, MealType, User, UserRole
 from app.repositories import users as repo
 from app.services import audit
 
@@ -25,6 +25,10 @@ class InvalidHalls(Exception):
 
 class DefaultMealTypeInvalid(Exception):
     pass
+
+
+class PasswordNotAllowed(Exception):
+    """Пароль LDAP-учётки меняется только в каталоге."""
 
 
 def _validate_halls(role: UserRole, hall_ids: list[uuid.UUID]) -> None:
@@ -119,6 +123,8 @@ async def set_password(
     user = await repo.get_by_id(db, user_id)
     if user is None:
         raise LookupError("user_not_found")
+    if user.auth_source == AuthSource.ldap:
+        raise PasswordNotAllowed(str(user.id))
     user.password_hash = hash_password(password)
     await db.flush()
     await audit.record(
