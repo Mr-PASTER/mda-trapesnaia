@@ -124,6 +124,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalog/halls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Halls */
+        get: operations["list_halls_api_v1_catalog_halls_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users": {
         parameters: {
             query?: never;
@@ -271,6 +288,24 @@ export interface paths {
         /** Period Report Export */
         get: operations["period_report_export_api_v1_accountant_report_period_export_get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/report-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Template */
+        get: operations["get_template_api_v1_report_template_get"];
+        /** Replace Template */
+        put: operations["replace_template_api_v1_report_template_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -546,6 +581,7 @@ export interface components {
             /** Full Name */
             full_name: string;
             role: components["schemas"]["UserRole"];
+            auth_source: components["schemas"]["AuthSource"];
             /** Is Active */
             is_active: boolean;
             /** Default Meal Type Id */
@@ -581,6 +617,11 @@ export interface components {
              */
             created_at: string;
         };
+        /**
+         * AuthSource
+         * @enum {string}
+         */
+        AuthSource: "local" | "ldap";
         /** DailyReportOut */
         DailyReportOut: {
             /**
@@ -747,6 +788,7 @@ export interface components {
             /** Full Name */
             full_name: string;
             role: components["schemas"]["UserRole"];
+            auth_source: components["schemas"]["AuthSource"];
             /** Is Active */
             is_active: boolean;
             /** Default Meal Type Id */
@@ -852,6 +894,7 @@ export interface components {
             /** Full Name */
             full_name: string;
             role: components["schemas"]["UserRole"];
+            auth_source: components["schemas"]["AuthSource"];
             /** Is Active */
             is_active: boolean;
             /** Default Meal Type Id */
@@ -906,6 +949,32 @@ export interface components {
              * Format: date
              */
             to: string;
+        };
+        /** ReportTemplateIn */
+        ReportTemplateIn: {
+            /**
+             * Groups
+             * @default []
+             */
+            groups: components["schemas"]["TemplateGroupIn"][];
+            /**
+             * Totals
+             * @default []
+             */
+            totals: components["schemas"]["TemplateTotalIn"][];
+        };
+        /** ReportTemplateOut */
+        ReportTemplateOut: {
+            /**
+             * Groups
+             * @default []
+             */
+            groups: components["schemas"]["TemplateGroupOut"][];
+            /**
+             * Totals
+             * @default []
+             */
+            totals: components["schemas"]["TemplateTotalOut"][];
         };
         /**
          * RuleKind
@@ -983,6 +1052,76 @@ export interface components {
             /** Deadline Time */
             deadline_time?: string | null;
         };
+        /** TemplateGroupIn */
+        TemplateGroupIn: {
+            /** Name */
+            name: string;
+            /**
+             * Show Subtotal
+             * @default true
+             */
+            show_subtotal: boolean;
+            /**
+             * Hall Ids
+             * @default []
+             */
+            hall_ids: string[];
+        };
+        /** TemplateGroupOut */
+        TemplateGroupOut: {
+            /** Name */
+            name: string;
+            /**
+             * Show Subtotal
+             * @default true
+             */
+            show_subtotal: boolean;
+            /**
+             * Hall Ids
+             * @default []
+             */
+            hall_ids: string[];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+        };
+        /** TemplateTotalIn */
+        TemplateTotalIn: {
+            /** Name */
+            name: string;
+            /**
+             * All Halls
+             * @default false
+             */
+            all_halls: boolean;
+            /**
+             * Hall Ids
+             * @default []
+             */
+            hall_ids: string[];
+        };
+        /** TemplateTotalOut */
+        TemplateTotalOut: {
+            /** Name */
+            name: string;
+            /**
+             * All Halls
+             * @default false
+             */
+            all_halls: boolean;
+            /**
+             * Hall Ids
+             * @default []
+             */
+            hall_ids: string[];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+        };
         /** TypeCountOut */
         TypeCountOut: {
             /** Meal Type Id */
@@ -1004,6 +1143,7 @@ export interface components {
             /** Full Name */
             full_name: string;
             role: components["schemas"]["UserRole"];
+            auth_source: components["schemas"]["AuthSource"];
             /** Is Active */
             is_active: boolean;
             /** Default Meal Type Id */
@@ -1275,6 +1415,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MealTypeOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_halls_api_v1_catalog_halls_get: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-device-fingerprint": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HallBrief"][];
                 };
             };
             /** @description Validation Error */
@@ -1573,6 +1744,7 @@ export interface operations {
             query: {
                 date: string;
                 hall_id?: string | null;
+                reserve?: boolean;
             };
             header: {
                 "x-device-fingerprint": string;
@@ -1608,6 +1780,7 @@ export interface operations {
                 from: string;
                 to: string;
                 hall_id?: string | null;
+                reserve?: boolean;
             };
             header: {
                 "x-device-fingerprint": string;
@@ -1624,6 +1797,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_template_api_v1_report_template_get: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-device-fingerprint": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportTemplateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_template_api_v1_report_template_put: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-device-fingerprint": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportTemplateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportTemplateOut"];
                 };
             };
             /** @description Validation Error */

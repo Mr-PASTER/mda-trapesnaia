@@ -6,11 +6,14 @@ import { Input } from "../../components/ui/Input";
 import { Spinner } from "../../components/ui/Spinner";
 import { EmptyState } from "../../components/ui/EmptyState";
 
+type Source = "ldap" | "local";
+
 export function PeoplePage() {
   const navigate = useNavigate();
   const { data: me } = useCurrentUser();
   const { data: people, isLoading, isError } = usePeople();
   const [query, setQuery] = useState("");
+  const [source, setSource] = useState<Source>("ldap");
 
   const hallName = useMemo(() => {
     const map = new Map<string, string>();
@@ -18,18 +21,53 @@ export function PeoplePage() {
     return map;
   }, [me]);
 
+  const ldapPeople = useMemo(
+    () => (people ?? []).filter((p) => p.auth_source === "ldap"),
+    [people],
+  );
+  const localPeople = useMemo(
+    () => (people ?? []).filter((p) => p.auth_source !== "ldap"),
+    [people],
+  );
+
   const filtered = useMemo(() => {
+    const list = source === "ldap" ? ldapPeople : localPeople;
     const q = query.trim().toLowerCase();
-    const list = people ?? [];
     if (!q) return list;
     return list.filter(
       (p) => p.full_name.toLowerCase().includes(q) || p.login.toLowerCase().includes(q),
     );
-  }, [people, query]);
+  }, [ldapPeople, localPeople, query, source]);
+
+  const tabClass = (active: boolean) =>
+    `min-h-11 rounded-xl border px-4 text-sm ${
+      active ? "border-accent bg-surface font-medium" : "border-border text-muted"
+    }`;
 
   return (
     <div className="mx-auto max-w-2xl p-4">
       <h1 className="mb-4 text-xl font-semibold">Питающиеся</h1>
+
+      <div className="mb-4 flex gap-2" role="tablist" aria-label="Источник пользователей">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={source === "ldap"}
+          onClick={() => setSource("ldap")}
+          className={tabClass(source === "ldap")}
+        >
+          Студенты · {ldapPeople.length}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={source === "local"}
+          onClick={() => setSource("local")}
+          className={tabClass(source === "local")}
+        >
+          Внешние · {localPeople.length}
+        </button>
+      </div>
 
       <Input
         value={query}
@@ -48,7 +86,13 @@ export function PeoplePage() {
       {!isLoading && !isError && filtered.length === 0 && (
         <div className="mt-4">
           <EmptyState
-            title={query ? "Никого не найдено" : "В ваших залах пока нет питающихся"}
+            title={
+              query
+                ? "Никого не найдено"
+                : source === "ldap"
+                  ? "В каталоге пока нет студентов"
+                  : "Внешних пользователей нет"
+            }
             hint={query ? "Попробуйте изменить запрос" : undefined}
           />
         </div>

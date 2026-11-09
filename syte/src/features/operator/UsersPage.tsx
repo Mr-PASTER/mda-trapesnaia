@@ -208,7 +208,14 @@ export function UsersPage() {
           <tbody>
             {users.map((user) => (
               <tr key={user.id}>
-                <Td>{user.login}</Td>
+                <Td>
+                  <span className="flex items-center gap-2">
+                    {user.login}
+                    <Badge tone={user.auth_source === "ldap" ? "accent" : "muted"}>
+                      {user.auth_source === "ldap" ? "LDAP" : "локальный"}
+                    </Badge>
+                  </span>
+                </Td>
                 <Td>{user.full_name}</Td>
                 <Td>
                   <Badge tone={user.role === "eater" ? "muted" : "accent"}>{ROLE_LABELS[user.role]}</Badge>
@@ -225,9 +232,11 @@ export function UsersPage() {
                     <Button variant="ghost" onClick={() => setHallsFor(user)}>
                       Залы
                     </Button>
-                    <Button variant="ghost" onClick={() => setPasswordFor(user)}>
-                      Пароль
-                    </Button>
+                    {user.auth_source !== "ldap" && (
+                      <Button variant="ghost" onClick={() => setPasswordFor(user)}>
+                        Пароль
+                      </Button>
+                    )}
                     {user.is_active && (
                       <Button
                         variant="danger"

@@ -25,7 +25,13 @@ export function LoginPage() {
       await queryClient.invalidateQueries({ queryKey: ["me"] });
       navigate("/", { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError && err.status === 401 ? "Неверный логин или пароль" : "Не удалось войти");
+      if (err instanceof ApiError && err.status === 503) {
+        setError("Каталог недоступен, попробуйте позже");
+      } else if (err instanceof ApiError && err.status === 401) {
+        setError("Неверный логин или пароль");
+      } else {
+        setError("Не удалось войти");
+      }
     } finally {
       setBusy(false);
     }
