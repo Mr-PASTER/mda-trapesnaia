@@ -382,6 +382,48 @@ class LdapAuthenticator:
             full_name=full_name,
         )
 
+    def identity_from_entry(self, entry: DirectoryEntry) -> LdapIdentity | None:
+        """Собирает учётную запись из записи каталога (для синка)."""
+        login = _as_text(entry.attributes.get(self._settings.login_attr)).strip().lower()
+        if not login:
+            logger.warning(
+                "LDAP: у записи %s нет атрибута %s — пропуск",
+                entry.dn,
+                self._settings.login_attr,
+            )
+            return None
+        uid = _as_text(entry.attributes.get(self._settings.id_attr)) or entry.dn
+        full_name = _as_text(entry.attributes.get(self._settings.name_attr)) or login
+        return LdapIdentity(uid=uid, dn=entry.dn, login=login, full_name=full_name)
+
+    def list_entries_sync(self, search_filter: str) -> list[DirectoryEntry]:
+        """Ищет все записи под ``LDAP_BASE_DN`` сервисной учёткой."""
+        base_dn = self._settings.base_dn
+        bind_dn = self._settings.bind_dn
+        bind_password = self._settings.bind_password
+        if not base_dn or not bind_dn or bind_password is None:
+            raise LdapUnavailable("LDAP настроен не полностью")
+
+        connection = self._connector.connect()
+        try:
+            if not connection.bind(bind_dn, bind_password):
+                raise LdapUnavailable("сервисная учётка LDAP не прошла bind")
+            return connection.search(
+                base_dn,
+                search_filter,
+                attributes=[
+                    self._settings.login_attr,
+                    self._settings.name_attr,
+                    self._settings.id_attr,
+                ],
+                size_limit=0,
+            )
+        finally:
+            connection.unbind()
+
+    async def list_entries(self, search_filter: str) -> list[DirectoryEntry]:
+        return await asyncio.to_thread(self.list_entries_sync, search_filter)
+
     def build_search_filter(self, login: str) -> str:
         """Собирает фильтр поиска, экранируя логин по RFC 4515.
 

@@ -34,3 +34,15 @@ def reset_cache() -> None:
 
 async def authenticate(login: str, password: str) -> LdapIdentity | None:
     return await get_authenticator().authenticate(login, password)
+
+
+async def list_identities(search_filter: str) -> list[LdapIdentity]:
+    """Все записи каталога, пригодные для импорта."""
+    authenticator = get_authenticator()
+    entries = await authenticator.list_entries(search_filter)
+    identities: list[LdapIdentity] = []
+    for entry in entries:
+        identity = authenticator.identity_from_entry(entry)
+        if identity is not None:
+            identities.append(identity)
+    return identities
