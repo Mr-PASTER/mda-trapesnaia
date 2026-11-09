@@ -5,10 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, get_session_token
 from app.core.config import settings
 from app.db.session import get_db
+from app.integrations.ldap import LdapUnavailable
 from app.models import Hall, User, UserHall
 from app.schemas.auth import LoginRequest
 from app.schemas.user import HallBrief, MeOut
 from app.services import auth
+from app.services.ldap_users import NoHallAvailable
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -33,7 +35,16 @@ async def login(
     x_device_fingerprint: str = Header(...),
     db: AsyncSession = Depends(get_db),
 ) -> MeOut:
-    user = await auth.authenticate(db, payload.login, payload.password)
+    try:
+        user = await auth.authenticate(db, payload.login, payload.password)
+    except LdapUnavailable:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, detail="ldap_unavailable"
+        )
+    except NoHallAvailable:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, detail="no_hall_available"
+        )
     if user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials")
     raw_token = await auth.create_session(db, user, x_device_fingerprint)

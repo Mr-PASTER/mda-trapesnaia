@@ -4,18 +4,33 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.security import hash_fingerprint, hash_token, verify_password
-from app.models import User, UserSession
+from app.models import AuthSource, User, UserSession
 from app.repositories import sessions as sessions_repo
 from app.repositories import users as users_repo
+from app.services import ldap as ldap_service
+from app.services import ldap_users
 
 
 async def authenticate(db: AsyncSession, login: str, password: str) -> User | None:
     user = await users_repo.get_by_login(db, login)
-    if user is None or not user.is_active:
+
+    if user is not None and user.auth_source == AuthSource.local:
+        if not user.is_active or not user.password_hash:
+            return None
+        return user if verify_password(user.password_hash, password) else None
+
+    # LDAP-запись, отключённая оператором, не входит и не включает себя обратно.
+    if user is not None and not user.is_active:
         return None
-    if not verify_password(user.password_hash, password):
+
+    if not ldap_service.get_ldap_settings().enabled:
         return None
-    return user
+
+    identity = await ldap_service.authenticate(login, password)
+    if identity is None:
+        return None
+    result = await ldap_users.upsert_ldap_user(db, identity, source="login")
+    return result.user
 
 
 async def create_session(db: AsyncSession, user: User, fingerprint: str) -> str:
