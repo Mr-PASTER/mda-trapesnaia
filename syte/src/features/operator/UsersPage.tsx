@@ -7,6 +7,7 @@ import {
   useOperatorUsers,
   useSetUserHalls,
   useSetUserPassword,
+  useSyncLdapUsers,
   useUpdateUser,
   type Hall,
   type MealTypeRow,
@@ -176,6 +177,27 @@ export function UsersPage() {
   const { data: halls } = useHalls();
   const { data: mealTypes } = useMealTypesAll();
   const remove = useDeleteUser();
+  const syncLdap = useSyncLdapUsers();
+
+  async function onSyncLdap() {
+    try {
+      const result = await syncLdap.mutateAsync();
+      toast(
+        `Каталог: создано ${result.created}, обновлено ${result.updated}, ` +
+          `отключено ${result.deactivated}, пропущено ${result.skipped}`,
+      );
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 503) {
+        toast("Каталог недоступен, попробуйте позже");
+      } else if (err instanceof ApiError && err.detail === "ldap_sync_filter_missing") {
+        toast("Не задан фильтр импорта (LDAP_SYNC_FILTER)");
+      } else if (err instanceof ApiError && err.detail === "ldap_disabled") {
+        toast("LDAP выключен в настройках");
+      } else {
+        toast("Не удалось обновить список из каталога");
+      }
+    }
+  }
 
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<OperatorUser | null>(null);
@@ -188,7 +210,12 @@ export function UsersPage() {
     <div className="mx-auto max-w-5xl p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Пользователи</h1>
-        <Button onClick={() => setCreating(true)}>Добавить пользователя</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" onClick={onSyncLdap} disabled={syncLdap.isPending}>
+            {syncLdap.isPending ? "Обновляем…" : "Обновить из LDAP"}
+          </Button>
+          <Button onClick={() => setCreating(true)}>Добавить пользователя</Button>
+        </div>
       </div>
 
       {isLoading && <Spinner />}

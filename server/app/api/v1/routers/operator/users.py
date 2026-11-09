@@ -5,12 +5,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import require_roles
 from app.db.session import get_db
+from app.integrations.ldap import LdapUnavailable
 from app.models import User, UserRole
 from app.repositories import users as users_repo
 from app.schemas.operator_user import (
-    HallsSet, OperatorUserCreate, OperatorUserOut, OperatorUserUpdate, PasswordSet,
+    HallsSet,
+    LdapSyncOut,
+    OperatorUserCreate,
+    OperatorUserOut,
+    OperatorUserUpdate,
+    PasswordSet,
 )
-from app.services import users
+from app.services import ldap as ldap_service
+from app.services import ldap_sync, users
 
 router = APIRouter(prefix="/users", tags=["operator:users"])
 _guard = require_roles(UserRole.operator)
@@ -31,6 +38,27 @@ async def list_users(role: UserRole | None = None, hall_id: uuid.UUID | None = N
     for u in await users.list_users(db, role=role, hall_id=hall_id, only_active=only_active):
         result.append(await _to_out(db, u))
     return result
+
+
+@router.post("/ldap-sync", response_model=LdapSyncOut)
+async def sync_ldap_users(db: AsyncSession = Depends(get_db),
+                          _: User = Depends(_guard)):
+    """Подтягивает питающихся из каталога по запросу оператора."""
+    if not ldap_service.get_ldap_settings().enabled:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="ldap_disabled")
+    try:
+        result = await ldap_sync.sync_directory(db)
+    except ldap_sync.SyncFilterMissing:
+        await db.rollback()
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="ldap_sync_filter_missing")
+    except LdapUnavailable:
+        await db.rollback()
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="ldap_unavailable")
+    await db.commit()
+    return LdapSyncOut(
+        created=result.created, updated=result.updated,
+        deactivated=result.deactivated, skipped=result.skipped,
+    )
 
 
 @router.post("", response_model=OperatorUserOut, status_code=status.HTTP_201_CREATED)

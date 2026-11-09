@@ -403,6 +403,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/operator/users/ldap-sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync Ldap Users
+         * @description Подтягивает питающихся из каталога по запросу оператора.
+         */
+        post: operations["sync_ldap_users_api_v1_operator_users_ldap_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/operator/users/{user_id}": {
         parameters: {
             query?: never;
@@ -768,6 +788,17 @@ export interface components {
         HallsSet: {
             /** Hall Ids */
             hall_ids: string[];
+        };
+        /** LdapSyncOut */
+        LdapSyncOut: {
+            /** Created */
+            created: number;
+            /** Updated */
+            updated: number;
+            /** Deactivated */
+            deactivated: number;
+            /** Skipped */
+            skipped: number;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -2205,6 +2236,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OperatorUserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_ldap_users_api_v1_operator_users_ldap_sync_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-device-fingerprint": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LdapSyncOut"];
                 };
             };
             /** @description Validation Error */

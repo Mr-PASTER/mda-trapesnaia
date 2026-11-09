@@ -84,6 +84,21 @@ export const useOperatorUsers = () =>
     queryFn: () => apiFetch<OperatorUser[]>("/operator/users?only_active=false"),
   });
 
+export type LdapSyncResult = {
+  created: number;
+  updated: number;
+  deactivated: number;
+  skipped: number;
+};
+
+export const useSyncLdapUsers = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch<LdapSyncResult>("/operator/users/ldap-sync", { method: "POST" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["op", "users"] }),
+  });
+};
+
 export const useCreateUser = () => {
   const qc = useQueryClient();
   return useMutation({

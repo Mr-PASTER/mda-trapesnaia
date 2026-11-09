@@ -32,3 +32,10 @@ class HallsSet(BaseModel):
 class OperatorUserOut(UserOut):
     model_config = ConfigDict(from_attributes=True)
     hall_ids: list[uuid.UUID] = []
+
+
+class LdapSyncOut(BaseModel):
+    created: int
+    updated: int
+    deactivated: int
+    skipped: int
