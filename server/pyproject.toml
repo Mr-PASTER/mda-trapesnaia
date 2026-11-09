@@ -14,6 +14,7 @@ dependencies = [
     "argon2-cffi>=23.1",
     "apscheduler>=3.10",
     "openpyxl>=3.1.5",
+    "ldap3>=2.9.1",
 ]
 
 [dependency-groups]
