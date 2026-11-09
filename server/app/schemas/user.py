@@ -2,7 +2,7 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models.enums import UserRole
+from app.models.enums import AuthSource, UserRole
 
 
 class UserOut(BaseModel):
@@ -12,6 +12,7 @@ class UserOut(BaseModel):
     login: str
     full_name: str
     role: UserRole
+    auth_source: AuthSource
     is_active: bool
     default_meal_type_id: uuid.UUID | None
 

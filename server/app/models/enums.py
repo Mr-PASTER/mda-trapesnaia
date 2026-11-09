@@ -8,6 +8,11 @@ class UserRole(str, enum.Enum):
     operator = "operator"
 
 
+class AuthSource(str, enum.Enum):
+    local = "local"
+    ldap = "ldap"
+
+
 class MealKind(str, enum.Enum):
     breakfast = "breakfast"
     lunch = "lunch"

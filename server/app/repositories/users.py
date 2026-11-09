@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import User, UserHall
+from app.models import AuthSource, User, UserHall
 
 
 async def get_by_login(db: AsyncSession, login: str) -> User | None:
@@ -13,6 +13,18 @@ async def get_by_login(db: AsyncSession, login: str) -> User | None:
 
 async def get_by_id(db: AsyncSession, user_id: uuid.UUID) -> User | None:
     return await db.get(User, user_id)
+
+
+async def get_by_ldap_uid(db: AsyncSession, uid: str) -> User | None:
+    result = await db.execute(select(User).where(User.ldap_uid == uid))
+    return result.scalar_one_or_none()
+
+
+async def list_ldap(db: AsyncSession, *, only_active: bool = False) -> list[User]:
+    stmt = select(User).where(User.auth_source == AuthSource.ldap)
+    if only_active:
+        stmt = stmt.where(User.is_active.is_(True))
+    return list((await db.execute(stmt)).scalars().all())
 
 
 async def list_all(

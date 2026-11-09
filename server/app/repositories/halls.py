@@ -26,3 +26,9 @@ async def add(db: AsyncSession, hall: Hall) -> Hall:
     db.add(hall)
     await db.flush()
     return hall
+
+
+async def first_active(db: AsyncSession) -> Hall | None:
+    """Первый активный зал по алфавиту — его получает новый питающийся."""
+    stmt = select(Hall).where(Hall.is_active.is_(True)).order_by(Hall.name).limit(1)
+    return (await db.execute(stmt)).scalars().first()
