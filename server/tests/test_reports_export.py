@@ -33,7 +33,7 @@ async def test_daily_report_export(client, accountant_headers, db_session):
     assert "report-2026-06-10.xlsx" in r.headers["content-disposition"]
 
     ws = openpyxl.load_workbook(io.BytesIO(r.content)).active
-    assert str(ws.cell(row=1, column=1).value).startswith("Отчёт")
+    assert str(ws.cell(row=1, column=1).value).startswith("Количество питающихся")
 
 
 async def test_period_report_export(client, accountant_headers, db_session):
@@ -50,4 +50,28 @@ async def test_period_report_export(client, accountant_headers, db_session):
     assert "report-2026-06-01_2026-06-03.xlsx" in r.headers["content-disposition"]
 
     ws = openpyxl.load_workbook(io.BytesIO(r.content)).active
-    assert str(ws.cell(row=1, column=1).value).startswith("Отчёт")
+    assert str(ws.cell(row=1, column=1).value).startswith("Количество питающихся")
+
+
+async def test_export_uses_template_and_reserve_flag(client, accountant_headers, db_session):
+    hall = Hall(name="Зал №1")
+    db_session.add(hall)
+    await db_session.commit()
+
+    r = await client.put(
+        "/api/v1/report-template",
+        json={"groups": [{"name": "Студенты", "show_subtotal": True,
+                          "hall_ids": [str(hall.id)]}], "totals": []},
+        headers=accountant_headers,
+    )
+    assert r.status_code == 200
+
+    r = await client.get(
+        "/api/v1/accountant/report/export?date=2026-06-10&reserve=true",
+        headers=accountant_headers,
+    )
+    assert r.status_code == 200
+    ws = openpyxl.load_workbook(io.BytesIO(r.content)).active
+    labels = [ws.cell(row=row, column=1).value for row in range(1, ws.max_row + 1)]
+    assert "Зал №1" in labels
+    assert "Итого Студенты" in labels

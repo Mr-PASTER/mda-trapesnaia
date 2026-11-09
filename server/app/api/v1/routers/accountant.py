@@ -9,7 +9,7 @@ from app.api.deps import require_roles
 from app.db.session import get_db
 from app.models import User, UserRole
 from app.schemas.report import DailyReportOut, PeriodReportOut
-from app.services import report_excel, reports
+from app.services import report_data, report_excel, report_template, reports
 
 router = APIRouter(prefix="/accountant", tags=["accountant"])
 _guard = require_roles(UserRole.accountant, UserRole.operator)
@@ -34,9 +34,13 @@ async def period_report(from_: date = Query(alias="from"), to: date = Query(...)
 @router.get("/report/export")
 async def daily_report_export(on_date: date = Query(alias="date"),
                               hall_id: uuid.UUID | None = None,
+                              reserve: bool = False,
                               db: AsyncSession = Depends(get_db), _: User = Depends(_guard)):
     report = await reports.build_daily_report(db, on_date=on_date, hall_id=hall_id)
-    content = report_excel.daily_report_to_xlsx(report)
+    template = await report_template.get_template(db)
+    content = report_excel.daily_report_to_xlsx(
+        report_data.report_data_from_daily(report), template, show_reserve=reserve
+    )
     filename = f"report-{on_date.isoformat()}.xlsx"
     return Response(
         content=content, media_type=XLSX_MEDIA_TYPE,
@@ -47,9 +51,13 @@ async def daily_report_export(on_date: date = Query(alias="date"),
 @router.get("/report/period/export")
 async def period_report_export(from_: date = Query(alias="from"), to: date = Query(...),
                                hall_id: uuid.UUID | None = None,
+                               reserve: bool = False,
                                db: AsyncSession = Depends(get_db), _: User = Depends(_guard)):
-    report = await reports.build_period_report(db, start=from_, end=to, hall_id=hall_id)
-    content = report_excel.period_report_to_xlsx(report)
+    matrix = await reports.build_period_matrix(db, start=from_, end=to, hall_id=hall_id)
+    template = await report_template.get_template(db)
+    content = report_excel.period_report_to_xlsx(
+        report_data.report_data_from_matrix(matrix), template, show_reserve=reserve
+    )
     filename = f"report-{from_.isoformat()}_{to.isoformat()}.xlsx"
     return Response(
         content=content, media_type=XLSX_MEDIA_TYPE,
