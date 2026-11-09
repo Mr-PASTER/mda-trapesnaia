@@ -423,6 +423,11 @@ function EditUserModal({
           Роль
           <RoleSelect value={role} onChange={setRole} />
         </label>
+        {(role === "operator" || role === "accountant") && user.hall_ids.length > 0 && (
+          <p className="rounded-lg bg-sunken px-3 py-2 text-xs text-muted">
+            Залы будут сняты: роли «{ROLE_LABELS[role]}» они не нужны.
+          </p>
+        )}
         <label className="flex flex-col gap-1 text-sm">
           Тип питания по умолчанию (необязательно)
           <MealTypeSelect mealTypes={mealTypes} value={mealTypeId} onChange={setMealTypeId} />

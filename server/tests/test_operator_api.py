@@ -110,3 +110,23 @@ async def test_password_change_is_rejected_for_ldap_user(client, operator_token,
 
     assert resp.status_code == 400
     assert resp.json()["detail"] == "ldap_user_password"
+
+
+async def test_role_change_to_operator_detaches_hall(client, operator_token):
+    h = await _login(client)
+
+    r = await client.post("/api/v1/operator/halls", json={"name": "Зал №1"}, headers=h)
+    hall_id = r.json()["id"]
+    r = await client.post("/api/v1/operator/users", headers=h, json={
+        "login": "ivan", "password": "pass", "full_name": "Иван",
+        "role": "eater", "hall_ids": [hall_id],
+    })
+    user_id = r.json()["id"]
+
+    r = await client.put(
+        f"/api/v1/operator/users/{user_id}", json={"role": "operator"}, headers=h,
+    )
+
+    assert r.status_code == 200
+    assert r.json()["role"] == "operator"
+    assert r.json()["hall_ids"] == []

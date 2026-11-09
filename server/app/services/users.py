@@ -53,6 +53,25 @@ async def _validate_default_type(db: AsyncSession, meal_type_id: uuid.UUID | Non
         raise DefaultMealTypeInvalid(str(meal_type_id))
 
 
+async def _trim_halls_for_role(
+    db: AsyncSession, user: User, role: UserRole
+) -> list[uuid.UUID]:
+    """Снимает залы, которые новая роль не допускает.
+
+    Например, оператору и бухгалтеру залы не нужны — при смене роли они
+    открепляются сами, чтобы действие не падало с ошибкой.
+    """
+    _, hi = _HALL_RULES[role]
+    if hi is None:
+        return []
+    current = sorted(await repo.hall_ids_of(db, user.id), key=str)
+    if len(current) <= hi:
+        return []
+    kept, removed = current[:hi], current[hi:]
+    await repo.replace_halls(db, user.id, kept)
+    return removed
+
+
 async def create_user(
     db: AsyncSession, *, actor_id: uuid.UUID, login: str, password: str,
     full_name: str, role: UserRole, hall_ids: list[uuid.UUID],
@@ -102,17 +121,22 @@ async def update_user(
     if full_name is not None:
         user.full_name = full_name
     if role is not None and role != user.role:
-        current = await repo.hall_ids_of(db, user.id)
-        _validate_halls(role, list(current))
+        cleared = await _trim_halls_for_role(db, user, role)
+        _validate_halls(role, list(await repo.hall_ids_of(db, user.id)))
         user.role = role
+    else:
+        cleared = []
     if default_meal_type_id is not None:
         await _validate_default_type(db, default_meal_type_id)
         user.default_meal_type_id = default_meal_type_id
     await db.flush()
+    details: dict = {"full_name": user.full_name, "role": user.role.value}
+    if cleared:
+        details["halls_cleared"] = [str(h) for h in cleared]
     await audit.record(
         db, actor_id=actor_id, action="update", entity_type="user",
         entity_id=str(user.id),
-        details={"full_name": user.full_name, "role": user.role.value},
+        details=details,
     )
     return user
 
